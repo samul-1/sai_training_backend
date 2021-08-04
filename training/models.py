@@ -86,41 +86,6 @@ class TrainingSession(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
 
-class TexRenderable(models.Model):
-    class Meta:
-        abstract = True
-
-    def _get_renderable_field_pairs(self):
-        ret = []
-        for field in self._meta.get_fields():
-            split_field_name = field.name.split("_", maxsplit=1)
-            if split_field_name[0] == "rendered":
-                target_field = field.name
-                source_field = self._meta.get_field(split_field_name[1])
-                ret.append(
-                    (source_field, target_field),
-                )
-
-        return ret
-
-    def save(self, *args, **kwargs):
-        creating = self.pk is None
-        renderable_field_pairs = self._get_renderable_field_pairs()
-
-        def render_tex(string):
-            return "rendered " + string
-
-        for (source, target) in renderable_field_pairs:
-            value_changed = creating or getattr(
-                type(self).objects.get(pk=self.pk), source
-            ) != getattr(self, source)
-            if value_changed:
-                rendered_content = render_tex(getattr(self, source))
-                setattr(self, target, rendered_content)
-
-        return super(TexRenderable, self).save(*args, **kwargs)
-
-
 class AbstractItem(models.Model):
     VERY_EASY = 0
     EASY = 1
