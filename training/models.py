@@ -46,6 +46,13 @@ class Topic(models.Model):
         null=True, blank=True, decimal_places=2, max_digits=5
     )
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "name"], name="same_course_topic_name_unique"
+            )
+        ]
+
     def __str__(self):
         return str(self.course) + " - " + self.name
 
@@ -67,7 +74,7 @@ class TrainingTemplateRule(models.Model):
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE)
     training_template = models.ForeignKey(TrainingTemplate, on_delete=models.CASCADE)
     amount = models.PositiveIntegerField()
-    difficulty = models.PositiveIntegerField()
+    #  difficulty = models.PositiveIntegerField()
 
 
 class TrainingSession(models.Model):
@@ -176,6 +183,37 @@ class Question(TrackRenderableFieldsMixin, AbstractItem):
     ]
 
 
+class Choice(TrackRenderableFieldsMixin):
+    question = models.ForeignKey(
+        Question, related_name="choices", on_delete=models.CASCADE
+    )
+    text = models.TextField()
+    rendered_text = models.TextField(blank=True)
+    correct = models.BooleanField()
+
+    renderable_tex_fields = [
+        ("text", "rendered_text"),
+    ]
+
+
+class GivenAnswer(models.Model):
+    user = models.ForeignKey(
+        User, related_name="given_answers", on_delete=models.CASCADE
+    )
+    question = models.ForeignKey(
+        Question, related_name="given_answers", on_delete=models.CASCADE
+    )
+    choice = models.ForeignKey(Choice, on_delete=models.PROTECT)
+
+    def clean(self, *args, **kwargs):
+        if self.choice not in self.question.choices.all():
+            raise ValidationError("Selected choice isn't an option for this question.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
 class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
     text = models.TextField()
     rendered_text = models.TextField(blank=True)
@@ -188,6 +226,40 @@ class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
         ("text", "rendered_text"),
         ("solution", "rendered_solution"),
     ]
+
+
+class ExerciseTestCase(models.Model):
+    exercise = models.ForeignKey(
+        ProgrammingExercise,
+        related_name="testcases",
+        on_delete=models.CASCADE,
+    )
+    code = models.TextField()
+    public = models.BooleanField(default=True)
+
+
+class ExerciseSubmission(models.Model):
+    user = models.ForeignKey(
+        User,
+        related_name="submissions",
+        on_delete=models.PROTECT,
+    )
+    exercise = models.ForeignKey(
+        ProgrammingExercise,
+        related_name="submissions",
+        on_delete=models.PROTECT,
+    )
+    code = models.TextField()
+    outcomes = models.ManyToManyField(
+        ExerciseTestCase, through="TestCaseOutcomeThroughModel"
+    )
+
+
+class TestCaseOutcomeThroughModel(models.Model):
+    testcase = models.ForeignKey(ExerciseTestCase, on_delete=models.CASCADE)
+    submission = models.ForeignKey(ExerciseSubmission, on_delete=models.CASCADE)
+    passed = models.BooleanField()
+    details = models.JSONField()
 
 
 def render_tex(string):
