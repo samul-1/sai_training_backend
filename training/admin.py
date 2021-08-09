@@ -1,6 +1,12 @@
 from django.contrib import admin
+from users.models import User
 
 from training.models import *
+
+
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    pass
 
 
 @admin.register(Question)

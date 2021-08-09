@@ -1,14 +1,5 @@
 from training.models import AbstractItem, TrainingTemplateRule
 
-# (very_easy, easy, medium, hard, very_hard) = (
-#     "very_easy",
-#     "easy",
-#     "medium",
-#     "hard",
-#     "very_hard",
-# )
-
-
 (very_easy, easy, medium, hard, very_hard) = (
     AbstractItem.VERY_EASY,
     AbstractItem.EASY,
