@@ -290,6 +290,9 @@ class Choice(TrackRenderableFieldsMixin):
         ("text", "rendered_text"),
     ]
 
+    def __str__(self):
+        return f"{self.text[:100]} ({str(self.question)})"
+
 
 class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
     text = models.TextField()
@@ -364,7 +367,9 @@ class TrainingSession(models.Model):
 class QuestionTrainingSessionThroughModel(models.Model):
     question = models.ForeignKey(Question, on_delete=models.PROTECT)
     training_session = models.ForeignKey(TrainingSession, on_delete=models.PROTECT)
-    selected_choice = models.ForeignKey(Choice, blank=True, null=True)
+    selected_choice = models.ForeignKey(
+        Choice, blank=True, null=True, on_delete=models.PROTECT
+    )
 
     def clean(self, *args, **kwargs):
         if self.selected_choice not in self.question.choices.all():

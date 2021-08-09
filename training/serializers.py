@@ -21,8 +21,8 @@ class CourseSerializer(serializers.ModelSerializer):
         teachers_only_fields = ["allowed_teachers"]
 
     def __init__(self, *args, **kwargs):  # todo probably make a mixin for this behavior
-        if self.context["request"].user.is_teacher:
-            self.fields.extend(self.teachers_only_fields)
+        # if self.context["request"].user.is_teacher:
+        #     self.fields.extend(self.teachers_only_fields)
 
         super().__init__(*args, **kwargs)
 
@@ -34,8 +34,8 @@ class TopicSerializer(serializers.ModelSerializer):
         teachers_only_fields = ["help_text", "error_percentage_for_help_text"]
 
     def __init__(self, *args, **kwargs):
-        if self.context["request"].user.is_teacher:
-            self.fields.extend(self.teachers_only_fields)
+        # if self.context["request"].user.is_teacher:
+        #     self.fields.extend(self.teachers_only_fields)
 
         super().__init__(*args, **kwargs)
 
@@ -47,13 +47,13 @@ class ChoiceSerializer(serializers.ModelSerializer):
         teachers_only_fields = ["correct"]
 
     def __init__(self, *args, **kwargs):
-        if self.context["request"].user.is_teacher:
-            self.fields.extend(self.teachers_only_fields)
+        # if self.context["request"].user.is_teacher:
+        #     self.fields.extend(self.teachers_only_fields)
 
         super().__init__(*args, **kwargs)
 
-        if not self.context["request"].user.is_teacher:
-            self.fields["text"].source = "rendered_text"
+        # if not self.context["request"].user.is_teacher:
+        #     self.fields["text"].source = "rendered_text"
 
 
 class QuestionSerializer(serializers.ModelSerializer):
@@ -63,12 +63,12 @@ class QuestionSerializer(serializers.ModelSerializer):
         teachers_only_fields = ["solution"]
 
     def __init__(self, *args, **kwargs):
-        if self.context["request"].user.is_teacher:
-            self.fields.extend(self.teachers_only_fields)
+        # if self.context["request"].user.is_teacher:
+        #     self.fields.extend(self.teachers_only_fields)
 
         super().__init__(*args, **kwargs)
         self.fields["choices"] = ChoiceSerializer(many=True, **kwargs)
 
-        if not self.context["request"].user.is_teacher:
-            self.fields["text"].source = "rendered_text"
-            self.fields["solution"].source = "rendered_solution"
+        # if not self.context["request"].user.is_teacher:
+        #     self.fields["text"].source = "rendered_text"
+        #     self.fields["solution"].source = "rendered_solution"

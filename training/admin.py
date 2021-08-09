@@ -8,6 +8,11 @@ class QuestionAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(Choice)
+class ChoiceAdmin(admin.ModelAdmin):
+    pass
+
+
 @admin.register(ProgrammingExercise)
 class ProgrammingExerciseAdmin(admin.ModelAdmin):
     pass
