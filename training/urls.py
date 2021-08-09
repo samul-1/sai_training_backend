@@ -13,6 +13,11 @@ course_router.register(r"topics", views.TopicViewSet, basename="course-topics")
 topic_router = routers.NestedSimpleRouter(course_router, r"topics", lookup="topic")
 topic_router.register(r"questions", views.QuestionViewSet, basename="topic-questions")
 
+course_router.register(
+    r"training_session",
+    views.TrainingSessionEndPoint,
+    basename="course-training-session",
+)
 
 urlpatterns = [
     path("", include(router.urls)),

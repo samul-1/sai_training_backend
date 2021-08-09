@@ -81,3 +81,9 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
             Choice.objects.create(question=question, **choice)
 
         return question
+
+
+class TrainingSessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrainingSession
+        fields = "__all__"
