@@ -76,7 +76,7 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
 
         question = Question.objects.create(**validated_data)
 
-        # create objects for each answer
+        # create objects for each choice
         for choice in choices_data:
             Choice.objects.create(question=question, **choice)
 
@@ -87,3 +87,28 @@ class TrainingSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = TrainingSession
         fields = "__all__"
+
+
+class TrainingTemplateRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TrainingTemplateRule
+        fields = ["topic", "difficulty_profile_code", "amount"]
+
+
+class TrainingTemplateSerializer(serializers.ModelSerializer):
+    rules = TrainingTemplateRuleSerializer(source="trainingtemplaterule_set", many=True)
+
+    class Meta:
+        model = TrainingTemplate
+        fields = "__all__"
+
+    def create(self, validated_data):
+        rules_data = validated_data.pop("rules")
+
+        template = TrainingTemplate.objects.create(**validated_data)
+
+        # create objects for each rule
+        for rule in rules_data:
+            TrainingTemplateRule.objects.create(template=template, **rule)
+
+        return template

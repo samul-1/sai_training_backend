@@ -14,9 +14,9 @@ topic_router = routers.NestedSimpleRouter(course_router, r"topics", lookup="topi
 topic_router.register(r"questions", views.QuestionViewSet, basename="topic-questions")
 
 course_router.register(
-    r"training_session",
-    views.TrainingSessionEndPoint,
-    basename="course-training-session",
+    r"training_templates",
+    views.TrainingTemplateViewSet,
+    basename="course-training-template",
 )
 
 urlpatterns = [

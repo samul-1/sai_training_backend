@@ -187,6 +187,16 @@ class TrainingTemplateRule(models.Model):
 
         return profiles[self.difficulty_profile_code]
 
+    @property
+    def amount(self):
+        return (
+            self.amount_very_easy
+            + self.amount_easy
+            + self.amount_medium
+            + self.amount_hard
+            + self.amount_very_hard
+        )
+
 
 class AbstractItem(models.Model):
     VERY_EASY = 0
