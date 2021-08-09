@@ -21,3 +21,13 @@ class CourseAdmin(admin.ModelAdmin):
 @admin.register(Topic)
 class TopicAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(TrainingTemplateRule)
+class TrainingTemplateRuleAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(TrainingTemplate)
+class TrainingTemplateAdmin(admin.ModelAdmin):
+    pass

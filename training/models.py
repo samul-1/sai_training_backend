@@ -59,6 +59,9 @@ class Topic(models.Model):
 
 class TrainingTemplate(models.Model):
     name = models.TextField(blank=True)
+    course = models.ForeignKey(
+        Course, related_name="training_templates", on_delete=models.CASCADE
+    )
     description = models.TextField(blank=True)
     creator = models.ForeignKey(
         User,
@@ -70,11 +73,96 @@ class TrainingTemplate(models.Model):
     rules = models.ManyToManyField(Topic, through="TrainingTemplateRule")
 
 
+class TrainingTemplateRuleManager(models.Manager):
+    def create(self, total_amount, *args, **kwargs):
+        from .difficulty_profiles import BOTTOM_UP, TOP_DOWN
+
+        rule = super().create(*args, **kwargs)
+
+        levels_range = range(AbstractItem.VERY_EASY, AbstractItem.VERY_HARD + 1)
+        if rule.difficulty_profile["fall_through_direction"] == TOP_DOWN:
+            # start from the highest difficulty level
+            levels_range = reversed(levels_range)
+
+        actual_total = 0
+        first_level_hit = None
+        for level in levels_range:
+            try:
+                actual_amount = round(total_amount * rule.difficulty_profile[level])
+                actual_total += actual_amount
+
+                # bookkeeping variables to choose which level to fill in later in case rounding
+                # causes less items to be actually allocated than the requested amount
+                if first_level_hit is None:
+                    first_level_hit = level
+                last_level_hit = level
+
+                setattr(
+                    rule,
+                    f"amount_{AbstractItem.DIFFICULTY_CHOICES[level][1]}",  # difficulty level name as a string
+                    actual_amount,
+                )
+            except KeyError:
+                pass
+
+        # this happens if rounding down percentages caused a lower total than the requested one
+        # pick the first or last level visited according to the fall-through rule and fill in the
+        # remainder of the items using that level
+        if actual_total < total_amount:
+            difference = total_amount - actual_total
+
+            if rule.difficulty_profile["fall_through_direction"] == BOTTOM_UP:
+                target_level = last_level_hit
+            else:
+                target_level = first_level_hit
+
+            target_field = f"amount_{AbstractItem.DIFFICULTY_CHOICES[target_level][1]}"
+            setattr(rule, target_field, getattr(rule, target_field) + difference)
+
+        rule.save()
+
+
 class TrainingTemplateRule(models.Model):
+    EASY_ONLY = "easy_only"
+    HARD_ONLY = "hard_only"
+    MOSTLY_EASY = "mostly_easy"
+    MOSTLY_HARD = "mostly_hard"
+    BALANCED = "balanced"
+
+    DIFFICULTY_PROFILE_CHOICES = (
+        (EASY_ONLY, "Easy only"),
+        (HARD_ONLY, "Hard only"),
+        (MOSTLY_EASY, "Mostly easy"),
+        (MOSTLY_HARD, "Mostly hard"),
+        (BALANCED, "Balanced"),
+    )
+
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE)
     training_template = models.ForeignKey(TrainingTemplate, on_delete=models.CASCADE)
-    amount = models.PositiveIntegerField()
-    #  difficulty = models.PositiveIntegerField()
+    difficulty_profile_code = models.CharField(
+        max_length=11, choices=DIFFICULTY_PROFILE_CHOICES
+    )
+    amount_very_easy = models.PositiveIntegerField(default=0)
+    amount_easy = models.PositiveIntegerField(default=0)
+    amount_medium = models.PositiveIntegerField(default=0)
+    amount_hard = models.PositiveIntegerField(default=0)
+    amount_very_hard = models.PositiveIntegerField(default=0)
+
+    objects = TrainingTemplateRuleManager()
+
+    def clean(self, *args, **kwargs):
+        if self.topic not in self.training_template.course.topics.all():
+            raise ValidationError("Chosen topic does not belong to template's course.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    @property
+    def difficulty_profile(self):
+        from .difficulty_profiles import profiles
+
+        return profiles[self.difficulty_profile_code]
 
 
 class TrainingSession(models.Model):
@@ -101,11 +189,11 @@ class AbstractItem(models.Model):
     VERY_HARD = 4
 
     DIFFICULTY_CHOICES = (
-        (VERY_EASY, "Very easy"),
-        (EASY, "Easy"),
-        (MEDIUM, "Medium"),
-        (HARD, "Hard"),
-        (VERY_HARD, "Very hard"),
+        (VERY_EASY, "very_easy"),
+        (EASY, "easy"),
+        (MEDIUM, "medium"),
+        (HARD, "hard"),
+        (VERY_HARD, "very_hard"),
     )
 
     course = models.ForeignKey(

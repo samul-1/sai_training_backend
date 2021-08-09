@@ -1,5 +1,14 @@
 from training.models import AbstractItem
 
+# (very_easy, easy, medium, hard, very_hard) = (
+#     "very_easy",
+#     "easy",
+#     "medium",
+#     "hard",
+#     "very_hard",
+# )
+
+
 (very_easy, easy, medium, hard, very_hard) = (
     AbstractItem.VERY_EASY,
     AbstractItem.EASY,
@@ -7,6 +16,7 @@ from training.models import AbstractItem
     AbstractItem.HARD,
     AbstractItem.VERY_HARD,
 )
+
 
 # The following two declaration are "fall-through rules": they're used to define behavior for
 # when there aren't enough items of the required difficulty level to fulfill the request, so
@@ -75,4 +85,12 @@ MOSTLY_HARD = {
     very_hard: 0.25,
     # if there aren't enough (very)-easy items, this will favor even harder configurations
     "fall_through_direction": BOTTOM_UP,
+}
+
+profiles = {
+    "easy_only": EASY_ONLY,
+    "hard_only": HARD_ONLY,
+    "mostly_easy": MOSTLY_EASY,
+    "mostly_hard": MOSTLY_HARD,
+    "balanced": BALANCED,
 }
