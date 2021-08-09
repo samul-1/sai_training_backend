@@ -1,4 +1,4 @@
-from training.models import AbstractItem
+from training.models import AbstractItem, TrainingTemplateRule
 
 # (very_easy, easy, medium, hard, very_hard) = (
 #     "very_easy",
@@ -15,6 +15,14 @@ from training.models import AbstractItem
     AbstractItem.MEDIUM,
     AbstractItem.HARD,
     AbstractItem.VERY_HARD,
+)
+
+(easy_only, hard_only, mostly_easy, mostly_hard, balanced) = (
+    TrainingTemplateRule.EASY_ONLY,
+    TrainingTemplateRule.HARD_ONLY,
+    TrainingTemplateRule.MOSTLY_EASY,
+    TrainingTemplateRule.MOSTLY_HARD,
+    TrainingTemplateRule.BALANCED,
 )
 
 
@@ -88,9 +96,9 @@ MOSTLY_HARD = {
 }
 
 profiles = {
-    "easy_only": EASY_ONLY,
-    "hard_only": HARD_ONLY,
-    "mostly_easy": MOSTLY_EASY,
-    "mostly_hard": MOSTLY_HARD,
-    "balanced": BALANCED,
+    easy_only: EASY_ONLY,
+    hard_only: HARD_ONLY,
+    mostly_easy: MOSTLY_EASY,
+    mostly_hard: MOSTLY_HARD,
+    balanced: BALANCED,
 }

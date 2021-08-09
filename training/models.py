@@ -15,11 +15,34 @@ class Course(models.Model):
         related_name="visible_courses",
         blank=True,
     )
+    enrolled_students = models.ManyToManyField(
+        User,
+        related_name="enrolled_courses",
+        blank=True,
+        through="Enrollment",
+    )
     created = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True)
 
     def __str__(self):
         return self.name
+
+
+class Enrollment(models.Model):
+    VIA_DIRECT_LINK = 0
+    VIA_COURSE_SEARCH = 1
+
+    ENROLLMENT_MODE_CHOICES = (
+        (VIA_DIRECT_LINK, "Via direct link"),
+        (VIA_COURSE_SEARCH, "Via course search"),
+    )
+
+    course = models.ForeignKey(Course, on_delete=models.PROTECT)
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    mode = models.PositiveSmallIntegerField(
+        null=True, blank=True, choices=ENROLLMENT_MODE_CHOICES
+    )
 
 
 class Topic(models.Model):
@@ -165,22 +188,6 @@ class TrainingTemplateRule(models.Model):
         return profiles[self.difficulty_profile_code]
 
 
-class TrainingSession(models.Model):
-    trainee = models.ForeignKey(
-        User, related_name="training_sessions", on_delete=models.SET_NULL, null=True
-    )
-    course = models.ForeignKey(
-        Course, related_name="training_sessions", on_delete=models.PROTECT
-    )
-    training_template = models.ForeignKey(
-        TrainingTemplate,
-        related_name="training_sessions",
-        on_delete=models.SET_NULL,
-        null=True,
-    )
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-
 class AbstractItem(models.Model):
     VERY_EASY = 0
     EASY = 1
@@ -231,14 +238,14 @@ class AbstractItem(models.Model):
             and type(self) == Question
         ):
             raise ValidationError(
-                "Cannot add a question to a category for programming exercises"
+                "Cannot add a question to a topic for programming exercises"
             )
         if (
             self.topic.items_type == Topic.QUESTIONS
             and type(self) == ProgrammingExercise
         ):
             raise ValidationError(
-                "Cannot add a programming exercise to a category for questions"
+                "Cannot add a programming exercise to a topic for questions"
             )
 
     def save(self, *args, **kwargs):
@@ -282,24 +289,6 @@ class Choice(TrackRenderableFieldsMixin):
     renderable_tex_fields = [
         ("text", "rendered_text"),
     ]
-
-
-class GivenAnswer(models.Model):
-    user = models.ForeignKey(
-        User, related_name="given_answers", on_delete=models.CASCADE
-    )
-    question = models.ForeignKey(
-        Question, related_name="given_answers", on_delete=models.CASCADE
-    )
-    choice = models.ForeignKey(Choice, on_delete=models.PROTECT)
-
-    def clean(self, *args, **kwargs):
-        if self.choice not in self.question.choices.all():
-            raise ValidationError("Selected choice isn't an option for this question.")
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        return super().save(*args, **kwargs)
 
 
 class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
@@ -348,6 +337,42 @@ class TestCaseOutcomeThroughModel(models.Model):
     submission = models.ForeignKey(ExerciseSubmission, on_delete=models.CASCADE)
     passed = models.BooleanField()
     details = models.JSONField()
+
+
+class TrainingSession(models.Model):
+    trainee = models.ForeignKey(
+        User, related_name="training_sessions", on_delete=models.SET_NULL, null=True
+    )
+    course = models.ForeignKey(
+        Course, related_name="training_sessions", on_delete=models.PROTECT
+    )
+    training_template = models.ForeignKey(
+        TrainingTemplate,
+        related_name="training_sessions",
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+    questions = models.ManyToManyField(
+        Question,
+        related_name="assigned_in_sessions",
+        blank=True,
+        through="QuestionTrainingSessionThroughModel",
+    )
+
+
+class QuestionTrainingSessionThroughModel(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.PROTECT)
+    training_session = models.ForeignKey(TrainingSession, on_delete=models.PROTECT)
+    selected_choice = models.ForeignKey(Choice, blank=True, null=True)
+
+    def clean(self, *args, **kwargs):
+        if self.selected_choice not in self.question.choices.all():
+            raise ValidationError("Selected choice isn't an option for this question.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 
 def render_tex(string):
