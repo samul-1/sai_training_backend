@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 from users.models import User
 
 
@@ -97,9 +98,10 @@ class TrainingTemplate(models.Model):
 
 
 class TrainingTemplateRuleManager(models.Manager):
-    def create(self, total_amount, *args, **kwargs):
+    def create(self, amount, *args, **kwargs):
         from .difficulty_profiles import BOTTOM_UP, TOP_DOWN
 
+        total_amount = amount
         rule = super().create(*args, **kwargs)
 
         levels_range = range(AbstractItem.VERY_EASY, AbstractItem.VERY_HARD + 1)
@@ -365,13 +367,50 @@ class TrainingSession(models.Model):
         on_delete=models.SET_NULL,
         null=True,
     )
-    timestamp = models.DateTimeField(auto_now_add=True)
+    begin_timestamp = models.DateTimeField(auto_now_add=True)
+    end_timestamp = models.DateTimeField(blank=True, null=True)
     questions = models.ManyToManyField(
         Question,
         related_name="assigned_in_sessions",
         blank=True,
         through="QuestionTrainingSessionThroughModel",
     )
+    in_progress = models.BooleanField(default=True)
+
+    def turn_in(self, answers):
+        # loops through the assigned questions to the session and saves the
+        # selected choice for each question
+        for (question_id, choice_id) in answers:
+            # get question
+            try:
+                question_through_row = QuestionTrainingSessionThroughModel.objects.get(
+                    training_session=self, question_id=question_id
+                )
+            except QuestionTrainingSessionThroughModel.DoesNotExist:
+                raise ValidationError(
+                    f"Question {question_id} not in session {self.pk}"
+                )
+
+            # set selected choice
+            try:
+                question_through_row.selected_choice = Choice.objects.get(pk=choice_id)
+                question_through_row.save()
+            except Choice.DoesNotExist:
+                raise ValidationError(f"Choice {choice_id} doesn't exist")
+
+        now = timezone.localtime(timezone.now())
+        self.end_timestamp = now
+        self.in_progress = False
+        self.save()
+
+    @property
+    def score(self):
+        # returns the number of questions in the session for which a correct
+        # choice was picked
+        return self.questiontrainingsessionthroughmodel_set.filter(
+            selected_choice__isnull=False,
+            selected_choice__correct=True,
+        ).count()
 
 
 class QuestionTrainingSessionThroughModel(models.Model):
@@ -382,7 +421,10 @@ class QuestionTrainingSessionThroughModel(models.Model):
     )
 
     def clean(self, *args, **kwargs):
-        if self.selected_choice not in self.question.choices.all():
+        if (
+            self.selected_choice is not None
+            and self.selected_choice not in self.question.choices.all()
+        ):
             raise ValidationError("Selected choice isn't an option for this question.")
 
     def save(self, *args, **kwargs):

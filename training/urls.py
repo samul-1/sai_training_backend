@@ -14,11 +14,15 @@ topic_router = routers.NestedSimpleRouter(course_router, r"topics", lookup="topi
 topic_router.register(r"questions", views.QuestionViewSet, basename="topic-questions")
 
 course_router.register(
-    r"training_templates",
+    r"templates",
     views.TrainingTemplateViewSet,
     basename="course-training-template",
 )
-
+course_router.register(
+    r"sessions",
+    views.TrainingSessionViewSet,
+    basename="course-training-session",
+)
 urlpatterns = [
     path("", include(router.urls)),
     path("", include(course_router.urls)),

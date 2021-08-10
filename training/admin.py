@@ -42,3 +42,12 @@ class TrainingTemplateRuleAdmin(admin.ModelAdmin):
 @admin.register(TrainingTemplate)
 class TrainingTemplateAdmin(admin.ModelAdmin):
     pass
+
+
+class TrainingSessionQuestionInline(admin.TabularInline):
+    model = TrainingSession.questions.through
+
+
+@admin.register(TrainingSession)
+class TrainingSessionAdmin(admin.ModelAdmin):
+    inlines = [TrainingSessionQuestionInline]

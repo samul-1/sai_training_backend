@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from training.models import QuestionTrainingSessionThroughModel
+
 from .models import (
     Choice,
     Course,
@@ -12,6 +14,14 @@ from .models import (
     TrainingTemplate,
     TrainingTemplateRule,
 )
+
+
+class ReadOnlyModelSerializer(serializers.ModelSerializer):
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)
+        for field in fields:
+            fields[field].read_only = True
+        return fields
 
 
 class TeachersOnlyFieldsModelSerializer(serializers.ModelSerializer):
@@ -55,6 +65,33 @@ class ChoiceSerializer(TeachersOnlyFieldsModelSerializer):
             self.fields["text"] = serializers.CharField(source="rendered_text")
 
 
+class PostSessionChoiceSerializer(ReadOnlyModelSerializer):
+    class Meta:
+        model = Choice
+        fields = ["id", "text", "correct"]
+
+
+class PostSessionQuestionSerializer(ReadOnlyModelSerializer):
+    choices = PostSessionChoiceSerializer(source="question.choices", many=True)
+    text = serializers.CharField(source="question.rendered_text")
+    solution = serializers.CharField(source="question.rendered_solution")
+    id = serializers.IntegerField(source="question.id")
+
+    class Meta:
+        model = QuestionTrainingSessionThroughModel
+        fields = ["id", "text", "solution", "choices", "selected_choice"]
+
+
+class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
+    questions = PostSessionQuestionSerializer(
+        many=True, source="questiontrainingsessionthroughmodel_set"
+    )
+
+    class Meta:
+        model = TrainingSession
+        fields = ["id", "score", "questions", "begin_timestamp", "end_timestamp"]
+
+
 class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
     class Meta:
         model = Question
@@ -68,7 +105,6 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
         self.fields["choices"] = ChoiceSerializer(many=True, **kwargs)
 
         if not self.context["request"].user.is_teacher:
-            # self.fields["text"].source = "rendered_text"
             self.fields["text"] = serializers.CharField(source="rendered_text")
 
     def create(self, validated_data):
@@ -83,10 +119,15 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
         return question
 
 
-class TrainingSessionSerializer(serializers.ModelSerializer):
+class TrainingSessionSerializer(ReadOnlyModelSerializer):
     class Meta:
         model = TrainingSession
-        fields = "__all__"
+        fields = ["questions", "begin_timestamp"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["questions"] = QuestionSerializer(many=True, **kwargs)
 
 
 class TrainingTemplateRuleSerializer(serializers.ModelSerializer):

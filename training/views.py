@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,19 +12,35 @@ from .serializers import (
     CourseSerializer,
     QuestionSerializer,
     TopicSerializer,
+    TrainingSessionOutcomeSerializer,
     TrainingSessionSerializer,
 )
 
 
-class CourseViewSet(viewsets.ModelViewSet):
-    serializer_class = CourseSerializer
-    queryset = Course.objects.all()
+class TrainingSessionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = TrainingSessionSerializer
+    queryset = TrainingSession.objects.all()
 
-    @action(detail=True, methods=["post"])
-    def my_training_session(self, request, **kwargs):
-        course_id = kwargs.pop("pk")
+    serializer_action_classes = {"retrieve": TrainingSessionOutcomeSerializer}
+
+    def get_serializer_class(self):
         try:
-            session = TrainingSession.objects.get(course__pk=course_id)
+            return self.serializer_action_classes[self.action]
+        except (KeyError, AttributeError):
+            return super().get_serializer_class()
+
+    def _get_serializer_context(self, request):
+        return {
+            "request": request,
+        }
+
+    @action(detail=False, methods=["post"])
+    def current(self, request, **kwargs):
+        course_id = kwargs.pop("course_pk")
+        try:
+            session = TrainingSession.objects.get(
+                course__pk=course_id, trainee=request.user, in_progress=True
+            )
         except TrainingSession.DoesNotExist:
             # a new session is being initiated: check that a training template
             # has been supplied in the request
@@ -37,13 +54,36 @@ class CourseViewSet(viewsets.ModelViewSet):
                 return Response(status=status.HTTP_404_NOT_FOUND)
 
             session = TrainingSession.objects.create(
-                user=self.request.user,
+                trainee=self.request.user,
                 course_id=course_id,
                 training_template=training_template,
             )
-
-        serializer = TrainingSessionSerializer(instance=session)
+        context = self._get_serializer_context(request)
+        serializer = TrainingSessionSerializer(instance=session, context=context)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["post"])
+    def turn_in(self, request, **kwargs):
+        course_id = kwargs.pop("course_pk")
+        try:
+            session = TrainingSession.objects.get(
+                course__pk=course_id, user=request.user, in_progress=True
+            )
+        except TrainingSession.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            session.turn_in(request.data["answers"])
+        except (KeyError, ValidationError):
+            return Response(stats=status.HTTP_400_BAD_REQUEST)
+
+        serializer = TrainingSessionOutcomeSerializer(instance=session)
+        return Response(serializer.data)
+
+
+class CourseViewSet(viewsets.ModelViewSet):
+    serializer_class = CourseSerializer
+    queryset = Course.objects.all()
 
 
 class TrainingTemplateViewSet(viewsets.ModelViewSet):
