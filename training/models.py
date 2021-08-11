@@ -9,7 +9,9 @@ from users.models import User
 class Course(models.Model):
     name = models.TextField(unique=True)
     creator = models.ForeignKey(
-        User, related_name="created_courses", on_delete=models.PROTECT
+        User,
+        related_name="created_courses",
+        on_delete=models.PROTECT,
     )
     allowed_teachers = models.ManyToManyField(
         User,
@@ -42,7 +44,9 @@ class Enrollment(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT)
     timestamp = models.DateTimeField(auto_now_add=True)
     mode = models.PositiveSmallIntegerField(
-        null=True, blank=True, choices=ENROLLMENT_MODE_CHOICES
+        null=True,
+        blank=True,
+        choices=ENROLLMENT_MODE_CHOICES,
     )
 
 
@@ -63,11 +67,16 @@ class Topic(models.Model):
         related_name="topics",
     )
     items_type = models.CharField(
-        max_length=1, choices=TOPIC_ITEM_TYPES, default=QUESTIONS
+        max_length=1,
+        choices=TOPIC_ITEM_TYPES,
+        default=QUESTIONS,
     )
     help_text = models.TextField(blank=True)
     error_percentage_for_help_text = models.DecimalField(
-        null=True, blank=True, decimal_places=2, max_digits=5
+        null=True,
+        blank=True,
+        decimal_places=2,
+        max_digits=5,
     )
 
     class Meta:
@@ -84,7 +93,9 @@ class Topic(models.Model):
 class TrainingTemplate(models.Model):
     name = models.TextField(blank=True)
     course = models.ForeignKey(
-        Course, related_name="training_templates", on_delete=models.CASCADE
+        Course,
+        related_name="training_templates",
+        on_delete=models.CASCADE,
     )
     description = models.TextField(blank=True)
     creator = models.ForeignKey(
@@ -218,12 +229,12 @@ class AbstractItem(models.Model):
     course = models.ForeignKey(
         Course,
         on_delete=models.PROTECT,
-        related_name="%(class)s",
+        related_name="%(class)ss",
     )
     topic = models.ForeignKey(
         Topic,
         on_delete=models.PROTECT,
-        related_name="%(class)s",
+        related_name="%(class)ss",
     )
     creator = models.ForeignKey(
         User,
@@ -292,7 +303,9 @@ class Question(TrackRenderableFieldsMixin, AbstractItem):
 
 class Choice(TrackRenderableFieldsMixin):
     question = models.ForeignKey(
-        Question, related_name="choices", on_delete=models.CASCADE
+        Question,
+        related_name="choices",
+        on_delete=models.CASCADE,
     )
     text = models.TextField()
     rendered_text = models.TextField(blank=True)
@@ -354,9 +367,61 @@ class TestCaseOutcomeThroughModel(models.Model):
     details = models.JSONField()
 
 
+class TrainingSessionManager(models.Manager):
+    def create(self, *args, **kwargs):
+        from .difficulty_profiles import TOP_DOWN
+
+        session = super().create(*args, **kwargs)
+
+        # keeps track of the order questions are added in
+        position = 0
+
+        # iterate over the session's template rules and pick random questions
+        # for each topic according to the rules
+        for rule in session.training_template.trainingtemplaterule_set.all():
+            # pass through each level twice: this is needed in case a level can't satisfy
+            # the requirement and neither can any subsequent level - after looping through
+            # the levels, each previously visited level has a second chance to fill in the
+            # debt from the previously visited level(s)
+            levels_range = range(AbstractItem.VERY_EASY, 2 * AbstractItem.VERY_HARD + 1)
+            if rule.difficulty_profile["fall_through_direction"] == TOP_DOWN:
+                # start from the highest difficulty level
+                levels_range = reversed(levels_range)
+
+            remainder_last_level = 0
+            for level in levels_range:
+                level = level % (AbstractItem.VERY_HARD + 1)
+
+                # the amount of questions needed for this level is the value in the field
+                # `amount_<level_name>` plus the difference between the requested amount for
+                # the previous level and the amount that was actually able to be supplied
+                amount = (
+                    getattr(rule, f"amount_{AbstractItem.DIFFICULTY_CHOICES[level][1]}")
+                    + remainder_last_level
+                )
+                # get random questions for given topic and difficulty level
+                questions = session.course.questions.filter(
+                    topic=rule.topic,
+                    difficulty=level,
+                ).order_by("?")[:amount]
+
+                for question in questions:
+                    session.questions.add(
+                        question, through_defaults={"position": position}
+                    )
+                    position += 1
+
+                remainder_last_level = amount - questions.count()
+
+        return session
+
+
 class TrainingSession(models.Model):
     trainee = models.ForeignKey(
-        User, related_name="training_sessions", on_delete=models.SET_NULL, null=True
+        User,
+        related_name="training_sessions",
+        on_delete=models.SET_NULL,
+        null=True,
     )
     course = models.ForeignKey(
         Course, related_name="training_sessions", on_delete=models.PROTECT
@@ -376,6 +441,17 @@ class TrainingSession(models.Model):
         through="QuestionTrainingSessionThroughModel",
     )
     in_progress = models.BooleanField(default=True)
+
+    objects = TrainingSessionManager()
+
+    @property
+    def score(self):
+        # returns the number of questions in the session for which a correct
+        # choice was picked
+        return self.questiontrainingsessionthroughmodel_set.filter(
+            selected_choice__isnull=False,
+            selected_choice__correct=True,
+        ).count()
 
     def turn_in(self, answers):
         # loops through the assigned questions to the session and saves the
@@ -403,21 +479,24 @@ class TrainingSession(models.Model):
         self.in_progress = False
         self.save()
 
-    @property
-    def score(self):
-        # returns the number of questions in the session for which a correct
-        # choice was picked
-        return self.questiontrainingsessionthroughmodel_set.filter(
-            selected_choice__isnull=False,
-            selected_choice__correct=True,
-        ).count()
-
 
 class QuestionTrainingSessionThroughModel(models.Model):
-    question = models.ForeignKey(Question, on_delete=models.PROTECT)
-    training_session = models.ForeignKey(TrainingSession, on_delete=models.PROTECT)
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+    )
+    position = (
+        models.PositiveIntegerField()
+    )  # todo make unique [session, position], [session, question]
+    training_session = models.ForeignKey(
+        TrainingSession,
+        on_delete=models.CASCADE,
+    )
     selected_choice = models.ForeignKey(
-        Choice, blank=True, null=True, on_delete=models.PROTECT
+        Choice,
+        blank=True,
+        null=True,
+        on_delete=models.PROTECT,
     )
 
     def clean(self, *args, **kwargs):
