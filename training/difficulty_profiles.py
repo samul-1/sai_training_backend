@@ -93,3 +93,22 @@ profiles = {
     mostly_hard: MOSTLY_HARD,
     balanced: BALANCED,
 }
+
+
+def get_last_level_checked(profile):
+    if profile["fall_through_direction"] == TOP_DOWN:
+        return AbstractItem.VERY_EASY
+    elif profile["fall_through_direction"] == BOTTOM_UP:
+        return AbstractItem.VERY_HARD
+
+    raise ValueError(f"Unknown fall-through value {profile['fall_through_direction']}")
+
+
+def get_levels_range(profile, rounds=1):
+    levels_range = range(
+        AbstractItem.VERY_EASY, rounds * AbstractItem.VERY_HARD + rounds
+    )
+    if profile["fall_through_direction"] == TOP_DOWN:
+        # start from the highest difficulty level
+        levels_range = reversed(levels_range)
+    return levels_range

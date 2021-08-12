@@ -1,11 +1,11 @@
-import math as m
-
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils import timezone
 from users.models import User
+
+import training.signals
+
+from .managers import TrainingSessionManager, TrainingTemplateRuleManager
 
 
 class Course(models.Model):
@@ -108,69 +108,6 @@ class TrainingTemplate(models.Model):
     )
     custom = models.BooleanField(default=False)
     rules = models.ManyToManyField(Topic, through="TrainingTemplateRule")
-
-
-class TrainingTemplateRuleManager(models.Manager):
-    @staticmethod
-    def get_largest_divisor(n):
-        largest_divisor = 0
-
-        for i in range(2, n):
-            if n % i == 0:
-                largest_divisor = i
-        return largest_divisor
-
-    @staticmethod
-    def get_levels_range(rule):
-        from .difficulty_profiles import BOTTOM_UP, TOP_DOWN
-
-        levels_range = range(AbstractItem.VERY_EASY, AbstractItem.VERY_HARD + 1)
-        if rule.difficulty_profile["fall_through_direction"] == TOP_DOWN:
-            # start from the highest difficulty level
-            levels_range = reversed(levels_range)
-        return levels_range
-
-    def create(self, amount, *args, **kwargs):
-        from .difficulty_profiles import BOTTOM_UP
-
-        total_amount = amount
-        rule = super().create(*args, **kwargs)
-
-        levels_range = self.get_levels_range(rule)
-
-        actual_total = 0
-        first_level_hit = None
-        for level in levels_range:
-            try:
-                actual_amount = m.floor(total_amount * rule.difficulty_profile[level])
-                actual_total += actual_amount
-
-                setattr(
-                    rule,
-                    f"amount_{AbstractItem.get_difficulty_level_name(level)}",
-                    actual_amount,
-                )
-            except KeyError:
-                pass
-
-        # this happens if rounding down percentages caused a lower total than the
-        # requested one: distribute the remainder evenly among fields
-        if actual_total < total_amount:
-            difference = total_amount - actual_total
-
-            while difference > 0:
-                levels_range = self.get_levels_range(rule)
-                for level in levels_range:
-                    target_field = (
-                        f"amount_{AbstractItem.get_difficulty_level_name(level)}"
-                    )
-                    setattr(rule, target_field, (getattr(rule, target_field) + 1))
-                    difference -= 1
-                    if difference == 0:
-                        break
-
-        rule.save()
-        return rule
 
 
 class TrainingTemplateRule(models.Model):
@@ -393,57 +330,6 @@ class TestCaseOutcomeThroughModel(models.Model):
     details = models.JSONField()
 
 
-class TrainingSessionManager(models.Manager):
-    def create(self, *args, **kwargs):
-        from .difficulty_profiles import TOP_DOWN
-
-        session = super().create(*args, **kwargs)
-
-        # keeps track of the order questions are added in
-        position = 0
-
-        # iterate over the session's template rules and pick random questions
-        # for each topic according to the rules
-        for rule in session.training_template.trainingtemplaterule_set.all():
-            # pass through each level twice: this is needed in case a level can't satisfy
-            # the requirement and neither can any subsequent level - after looping through
-            # the levels, each previously visited level has a second chance to fill in the
-            # debt from the previously visited level(s)
-            levels_range = range(AbstractItem.VERY_EASY, 2 * AbstractItem.VERY_HARD + 1)
-            if rule.difficulty_profile["fall_through_direction"] == TOP_DOWN:
-                # start from the highest difficulty level
-                levels_range = reversed(levels_range)
-
-            remainder_last_level = 0
-            for level in levels_range:
-                level = level % (AbstractItem.VERY_HARD + 1)
-
-                # the amount of questions needed for this level is the value in the field
-                # `amount_<level_name>` plus the difference between the requested amount for
-                # the previous level and the amount that was actually able to be supplied
-                amount = (
-                    getattr(
-                        rule, f"amount_{AbstractItem.get_difficulty_level_name(level)}"
-                    )
-                    + remainder_last_level
-                )
-                # get random questions for given topic and difficulty level
-                questions = session.course.questions.filter(
-                    topic=rule.topic,
-                    difficulty=level,
-                ).order_by("?")[:amount]
-
-                for question in questions:
-                    session.questions.add(
-                        question, through_defaults={"position": position}
-                    )
-                    position += 1
-
-                remainder_last_level = amount - questions.count()
-
-        return session
-
-
 class TrainingSession(models.Model):
     trainee = models.ForeignKey(
         User,
@@ -537,28 +423,3 @@ class QuestionTrainingSessionThroughModel(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
-
-
-def render_tex(string):
-    return f"rendered - {string}"
-
-
-@receiver(post_save)
-def render_tex_fields(sender, instance, created, **kwargs):
-    if not hasattr(sender, "renderable_tex_fields"):
-        return
-
-    re_rendered_field_values = {}
-    for (source, target) in sender.renderable_tex_fields:
-        value_changed = created or (
-            getattr(instance, source) != getattr(instance, f"_old_{source}")
-        )
-        if value_changed:
-            print(f"{source} changed")
-            rendered_content = render_tex(getattr(instance, source))
-            re_rendered_field_values[target] = rendered_content
-        else:
-            print(f"{source} stayed the same")
-
-    # use `update` to prevent calling `save` again and entering a loop
-    sender.objects.filter(pk=instance.pk).update(**re_rendered_field_values)
