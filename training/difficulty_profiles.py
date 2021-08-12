@@ -46,14 +46,14 @@ TOP_DOWN = -1
 
 
 EASY_ONLY = {
-    very_easy: 0.5,
-    easy: 0.5,
+    very_easy: 0.4,
+    easy: 0.6,
     "fall_through_direction": BOTTOM_UP,  # if there aren't enough `very_easy` items, add more `easy`
 }
 
 HARD_ONLY = {
-    hard: 0.5,
-    very_hard: 0.5,
+    hard: 0.6,
+    very_hard: 0.4,
     "fall_through_direction": TOP_DOWN,  # if there aren't enough `very_hard` items, add more `hard`
 }
 
@@ -67,23 +67,23 @@ BALANCED = {
 }
 
 MOSTLY_EASY = {
-    very_easy: 0.25,
+    very_easy: 0.20,
     easy: 0.30,
     medium: 0.25,
-    hard: 0.10,
+    hard: 0.15,
     very_hard: 0.10,
     # if there aren't enough (very)-hard items, this will favor even easier configurations
-    "fall_through_direction": TOP_DOWN,
+    "fall_through_direction": BOTTOM_UP,
 }
 
 MOSTLY_HARD = {
     very_easy: 0.10,
-    easy: 0.10,
+    easy: 0.15,
     medium: 0.25,
     hard: 0.30,
-    very_hard: 0.25,
+    very_hard: 0.20,
     # if there aren't enough (very)-easy items, this will favor even harder configurations
-    "fall_through_direction": BOTTOM_UP,
+    "fall_through_direction": TOP_DOWN,
 }
 
 profiles = {

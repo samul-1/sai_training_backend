@@ -1,3 +1,5 @@
+import math as m
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save
@@ -109,29 +111,39 @@ class TrainingTemplate(models.Model):
 
 
 class TrainingTemplateRuleManager(models.Manager):
-    def create(self, amount, *args, **kwargs):
-        from .difficulty_profiles import BOTTOM_UP, TOP_DOWN
+    @staticmethod
+    def get_largest_divisor(n):
+        largest_divisor = 0
 
-        total_amount = amount
-        rule = super().create(*args, **kwargs)
+        for i in range(2, n):
+            if n % i == 0:
+                largest_divisor = i
+        return largest_divisor
+
+    @staticmethod
+    def get_levels_range(rule):
+        from .difficulty_profiles import BOTTOM_UP, TOP_DOWN
 
         levels_range = range(AbstractItem.VERY_EASY, AbstractItem.VERY_HARD + 1)
         if rule.difficulty_profile["fall_through_direction"] == TOP_DOWN:
             # start from the highest difficulty level
             levels_range = reversed(levels_range)
+        return levels_range
+
+    def create(self, amount, *args, **kwargs):
+        from .difficulty_profiles import BOTTOM_UP
+
+        total_amount = amount
+        rule = super().create(*args, **kwargs)
+
+        levels_range = self.get_levels_range(rule)
 
         actual_total = 0
         first_level_hit = None
         for level in levels_range:
             try:
-                actual_amount = round(total_amount * rule.difficulty_profile[level])
+                actual_amount = m.floor(total_amount * rule.difficulty_profile[level])
                 actual_total += actual_amount
-
-                # bookkeeping variables to choose which level to fill in later in case rounding
-                # causes less items to be actually allocated than the requested amount
-                if first_level_hit is None:
-                    first_level_hit = level
-                last_level_hit = level
 
                 setattr(
                     rule,
@@ -141,23 +153,24 @@ class TrainingTemplateRuleManager(models.Manager):
             except KeyError:
                 pass
 
-        # this happens if rounding down percentages caused a lower total than the requested one
-        # pick the first or last level visited according to the fall-through rule and fill in the
-        # remainder of the items using that level
+        # this happens if rounding down percentages caused a lower total than the
+        # requested one: distribute the remainder evenly among fields
         if actual_total < total_amount:
             difference = total_amount - actual_total
 
-            if rule.difficulty_profile["fall_through_direction"] == BOTTOM_UP:
-                target_level = last_level_hit
-            else:
-                target_level = first_level_hit
-
-            target_field = (
-                f"amount_{AbstractItem.get_difficulty_level_name(target_level)}"
-            )
-            setattr(rule, target_field, getattr(rule, target_field) + difference)
+            while difference > 0:
+                levels_range = self.get_levels_range(rule)
+                for level in levels_range:
+                    target_field = (
+                        f"amount_{AbstractItem.get_difficulty_level_name(level)}"
+                    )
+                    setattr(rule, target_field, (getattr(rule, target_field) + 1))
+                    difference -= 1
+                    if difference == 0:
+                        break
 
         rule.save()
+        return rule
 
 
 class TrainingTemplateRule(models.Model):
@@ -187,6 +200,13 @@ class TrainingTemplateRule(models.Model):
     amount_very_hard = models.PositiveIntegerField(default=0)
 
     objects = TrainingTemplateRuleManager()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["topic", "training_template"], name="topic_template_unique"
+            )
+        ]
 
     def clean(self, *args, **kwargs):
         if self.topic not in self.training_template.course.topics.all():
