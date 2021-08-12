@@ -135,7 +135,7 @@ class TrainingTemplateRuleManager(models.Manager):
 
                 setattr(
                     rule,
-                    f"amount_{AbstractItem.DIFFICULTY_CHOICES[level][1]}",  # difficulty level name as a string
+                    f"amount_{AbstractItem.get_difficulty_level_name(level)}",
                     actual_amount,
                 )
             except KeyError:
@@ -152,7 +152,9 @@ class TrainingTemplateRuleManager(models.Manager):
             else:
                 target_level = first_level_hit
 
-            target_field = f"amount_{AbstractItem.DIFFICULTY_CHOICES[target_level][1]}"
+            target_field = (
+                f"amount_{AbstractItem.get_difficulty_level_name(target_level)}"
+            )
             setattr(rule, target_field, getattr(rule, target_field) + difference)
 
         rule.save()
@@ -275,6 +277,10 @@ class AbstractItem(models.Model):
         self.full_clean()
         return super(AbstractItem, self).save(*args, **kwargs)
 
+    @classmethod
+    def get_difficulty_level_name(cls, level_value):
+        return cls.DIFFICULTY_CHOICES[level_value][1]
+
 
 class TrackRenderableFieldsMixin(models.Model):
     class Meta:
@@ -396,7 +402,9 @@ class TrainingSessionManager(models.Manager):
                 # `amount_<level_name>` plus the difference between the requested amount for
                 # the previous level and the amount that was actually able to be supplied
                 amount = (
-                    getattr(rule, f"amount_{AbstractItem.DIFFICULTY_CHOICES[level][1]}")
+                    getattr(
+                        rule, f"amount_{AbstractItem.get_difficulty_level_name(level)}"
+                    )
                     + remainder_last_level
                 )
                 # get random questions for given topic and difficulty level

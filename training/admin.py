@@ -41,6 +41,15 @@ class TrainingTemplateRuleAdmin(admin.ModelAdmin):
 
 class TrainingTemplateRuleInline(admin.TabularInline):
     model = TrainingTemplate.rules.through
+    readonly_fields = ("amount",)
+    # fieldsets = (
+    #     (
+    #         None,
+    #         {
+    #             "fields": (("amount"),),
+    #         },
+    #     ),
+    # )
 
 
 @admin.register(TrainingTemplate)
