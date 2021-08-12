@@ -1,8 +1,10 @@
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from users.models import User
 
 from training.models import (
     AbstractItem,
+    Choice,
     Course,
     Question,
     Topic,
@@ -49,23 +51,50 @@ def questions_data_set_up(obj):
         course=obj.math_course,
         difficulty=AbstractItem.EASY,
     )
+    obj.trigo_q1c_correct = Choice.objects.create(
+        question=obj.trigo_q1, text="correct", correct=True
+    )
+    obj.trigo_q1c_incorrect = Choice.objects.create(
+        question=obj.trigo_q1, text="incorrect", correct=False
+    )
+
     obj.trigo_q2 = Question.objects.create(
         text="cos(0)=",
         topic=obj.topic_trigonometry,
         course=obj.math_course,
         difficulty=AbstractItem.MEDIUM,
     )
+    obj.trigo_q2c_correct = Choice.objects.create(
+        question=obj.trigo_q2, text="correct", correct=True
+    )
+    obj.trigo_q2c_incorrect = Choice.objects.create(
+        question=obj.trigo_q2, text="incorrect", correct=False
+    )
+
     obj.log_q1 = Question.objects.create(
         text="log e=",
         topic=obj.topic_logarithms,
         course=obj.math_course,
         difficulty=AbstractItem.VERY_EASY,
     )
+    obj.log_q1c_correct = Choice.objects.create(
+        question=obj.log_q1, text="correct", correct=True
+    )
+    obj.log_q1c_incorrect = Choice.objects.create(
+        question=obj.log_q1, text="incorrect", correct=False
+    )
+
     obj.log_q2 = Question.objects.create(
         text="log a + log b",
         topic=obj.topic_logarithms,
         course=obj.math_course,
         difficulty=AbstractItem.HARD,
+    )
+    obj.log_q2c_correct = Choice.objects.create(
+        question=obj.log_q2, text="correct", correct=True
+    )
+    obj.log_q2c_incorrect = Choice.objects.create(
+        question=obj.log_q2, text="incorrect", correct=False
     )
 
 
@@ -369,7 +398,7 @@ class TrainingTemplateTestCase(TestCase):
         t1rule4.delete()
 
 
-class TrainingSessionTestCase(TestCase):
+class TrainingSessionCreationTestCase(TestCase):
     def setUp(self):
         user_data_set_up(self)
         course_topic_data_set_up(self)
@@ -393,15 +422,15 @@ class TrainingSessionTestCase(TestCase):
             topic=self.topic_logarithms,
         )
 
-    import string
-
     @staticmethod
-    def random_string(size=6, chars=string.ascii_uppercase + string.digits):
+    def random_string(size=6):
         import random
+        import string
 
+        chars = string.ascii_uppercase + string.digits
         return "".join(random.choice(chars) for _ in range(size))
 
-    def test_session_creation_with_exact_numbers(self):
+    def test_session_creation_with_exact_numbers_balanced_profile(self):
         for i in range(0, 10):
             q = Question.objects.create(
                 course=self.math_course,
@@ -446,7 +475,7 @@ class TrainingSessionTestCase(TestCase):
             set([level[0] for level in AbstractItem.DIFFICULTY_CHOICES]),
         )
 
-    def test_session_creation_with_inexact_numbers(self):
+    def test_session_creation_with_inexact_numbers_balanced_profile(self):
         for i in range(0, 10):
             q = Question.objects.create(
                 course=self.math_course,
@@ -507,3 +536,95 @@ class TrainingSessionTestCase(TestCase):
                 ]
             ),
         )
+
+
+class TrainingSessionEvaluationCreationTestCase(TestCase):
+    def setUp(self):
+        user_data_set_up(self)
+        course_topic_data_set_up(self)
+        questions_data_set_up(self)
+        self.template1 = TrainingTemplate.objects.create(
+            name="template1",
+            course=self.math_course,
+        )
+
+    def test_turn_in(self):
+        session1 = TrainingSession.objects.create(
+            trainee=self.student,
+            training_template=self.template1,
+            course=self.math_course,
+        )
+        session1.questions.clear()
+
+        session1.questions.add(self.trigo_q1, through_defaults={"position": 0})
+        session1.questions.add(self.trigo_q2, through_defaults={"position": 1})
+        session1.questions.add(self.log_q1, through_defaults={"position": 2})
+        session1.questions.add(self.log_q2, through_defaults={"position": 3})
+
+        self.assertEquals(session1.score, 0)
+        self.assertTrue(session1.in_progress)
+
+        answers = {
+            str(self.trigo_q1.pk): self.trigo_q1c_correct.pk,  # correct answer
+            str(self.trigo_q2.pk): self.trigo_q2c_incorrect.pk,  # incorrect answer
+            str(self.log_q1.pk): None,  # no answer
+            str(self.log_q2.pk): self.log_q2c_correct.pk,  # correct answer
+        }
+
+        session1.turn_in(answers)
+        self.assertEquals(session1.score, 2)
+        self.assertFalse(session1.in_progress)
+
+        with self.assertRaises(ValidationError):
+            # can't turn in more than once
+            session1.turn_in(answers)
+
+        # show that validation blocks malformed `answer` dicts
+        session2 = TrainingSession.objects.create(
+            trainee=self.student,
+            training_template=self.template1,
+            course=self.math_course,
+        )
+        session2.questions.clear()
+
+        session2.questions.add(self.trigo_q1, through_defaults={"position": 0})
+        session2.questions.add(self.trigo_q2, through_defaults={"position": 1})
+        session2.questions.add(self.log_q1, through_defaults={"position": 2})
+        session2.questions.add(self.log_q2, through_defaults={"position": 3})
+
+        self.assertEquals(session2.score, 0)
+        self.assertTrue(session2.in_progress)
+
+        answers = {
+            "10000": self.trigo_q1c_correct.pk,  # nonexistent question
+        }
+
+        with self.assertRaises(ValidationError):
+            session2.turn_in(answers)
+
+        new_question = Question.objects.create(
+            course=self.math_course,
+            topic=self.topic_trigonometry,
+            text="abc",
+            difficulty=AbstractItem.MEDIUM,
+        )
+        new_choice = Choice.objects.create(
+            question=new_question, text="xyz", correct=True
+        )
+
+        answers = {
+            str(new_question.pk): new_choice.pk,  # question not in the session
+        }
+
+        with self.assertRaises(ValidationError):
+            session2.turn_in(answers)
+
+        answers = {
+            str(
+                self.trigo_q1.pk
+            ): self.trigo_q2c_correct.pk,  # choice belongs to wrong question
+        }
+
+        with self.assertRaises(ValidationError):
+            # can't turn in more than once
+            session2.turn_in(answers)

@@ -368,12 +368,15 @@ class TrainingSession(models.Model):
         ).count()
 
     def turn_in(self, answers):
+        if not self.in_progress:
+            raise ValidationError("Session is over.")
+
         # loops through the assigned questions to the session and saves the
         # selected choice for each question
-        for (question_id, choice_id) in answers:
+        for question_id, choice_id in answers.items():
             # get question
             try:
-                question_through_row = QuestionTrainingSessionThroughModel.objects.get(
+                through_row = QuestionTrainingSessionThroughModel.objects.get(
                     training_session=self, question_id=question_id
                 )
             except QuestionTrainingSessionThroughModel.DoesNotExist:
@@ -382,11 +385,12 @@ class TrainingSession(models.Model):
                 )
 
             # set selected choice
-            try:
-                question_through_row.selected_choice = Choice.objects.get(pk=choice_id)
-                question_through_row.save()
-            except Choice.DoesNotExist:
-                raise ValidationError(f"Choice {choice_id} doesn't exist")
+            if choice_id is not None:
+                try:
+                    through_row.selected_choice = Choice.objects.get(pk=choice_id)
+                    through_row.save()
+                except Choice.DoesNotExist:
+                    raise ValidationError(f"Choice {choice_id} doesn't exist")
 
         now = timezone.localtime(timezone.now())
         self.end_timestamp = now
