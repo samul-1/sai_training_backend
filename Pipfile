@@ -9,6 +9,9 @@ djangorestframework = "*"
 django-filter = "*"
 markdown = "*"
 drf-nested-routers = "*"
+django-rest-framework-social-oauth2 = "*"
+djoser = "*"
+django-cors-headers = "*"
 
 [dev-packages]
 

@@ -32,6 +32,10 @@ class Course(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def number_enrolled(self):
+        return self.enrolled_students.count()
+
 
 class Enrollment(models.Model):
     VIA_DIRECT_LINK = 0

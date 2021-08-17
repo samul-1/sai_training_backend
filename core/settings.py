@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import os
 from os import environ
 from pathlib import Path
 
@@ -39,11 +40,24 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework.authtoken",
     "users",
     "training",
+    "oauth2_provider",
+    "social_django",
+    "rest_framework_social_oauth2",
+    "corsheaders",
+    "djoser",
 ]
 
+
+CORS_ORIGIN_ALLOW_ALL = True
+
+
+CORS_ALLOW_CREDENTIALS = True
+
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -129,3 +143,45 @@ STATIC_URL = "/static/"
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+AUTHENTICATION_BACKENDS = (
+    # Google OAuth2
+    "social_core.backends.google.GoogleOAuth2",
+    # django-rest-framework-social-oauth2
+    "rest_framework_social_oauth2.backends.DjangoOAuth2",
+    # Django
+    "django.contrib.auth.backends.ModelBackend",
+)
+
+REST_FRAMEWORK = {
+    "TEST_REQUEST_DEFAULT_FORMAT": "json",
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        # "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",  # for browsable api
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",  # django-oauth-toolkit >= 1.0.0
+        "rest_framework_social_oauth2.authentication.SocialAuthentication",
+    ),
+    "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",
+}
+
+# only allow access to uni emails
+SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = [
+    "studenti.unipi.it",
+    "unipi.it",
+]
+
+DJOSER = {"SERIALIZERS": {"current_user": "users.serializers.UserSerializer"}}
+
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY", None)
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get(
+    "SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET", None
+)
+
+# Define SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE to get extra permissions from Google.
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+]

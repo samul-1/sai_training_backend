@@ -38,10 +38,21 @@ class TeachersOnlyFieldsModelSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(TeachersOnlyFieldsModelSerializer):
+    creator = serializers.CharField(source="creator.full_name")
+
     class Meta:
         model = Course
-        fields = ["name", "description", "creator"]
+        fields = ["id", "name", "description", "creator", "number_enrolled"]
         teachers_only_fields = ["allowed_teachers"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not self.context["request"].user.is_teacher:
+            self.fields["enrolled"] = serializers.SerializerMethodField()
+
+    def get_enrolled(self, obj):
+        return self.context["request"].user in obj.enrolled_students.all()
 
 
 class TopicSerializer(TeachersOnlyFieldsModelSerializer):
@@ -61,7 +72,6 @@ class ChoiceSerializer(TeachersOnlyFieldsModelSerializer):
         super().__init__(*args, **kwargs)
 
         if not self.context["request"].user.is_teacher:
-            # self.fields["text"].source = "rendered_text"
             self.fields["text"] = serializers.CharField(source="rendered_text")
 
 
@@ -130,10 +140,13 @@ class TrainingSessionSerializer(ReadOnlyModelSerializer):
         self.fields["questions"] = QuestionSerializer(many=True, **kwargs)
 
 
-class TrainingTemplateRuleSerializer(serializers.ModelSerializer):
+class TrainingTemplateRuleSerializer(ReadOnlyModelSerializer):
+    difficulty_profile = serializers.CharField(source="difficulty_profile_code")
+    topic = serializers.CharField(source="topic.name")
+
     class Meta:
         model = TrainingTemplateRule
-        fields = ["topic", "difficulty_profile_code", "amount"]
+        fields = ["topic", "amount", "difficulty_profile"]
 
 
 class TrainingTemplateSerializer(serializers.ModelSerializer):

@@ -24,9 +24,13 @@ class ProgrammingExerciseAdmin(admin.ModelAdmin):
     pass
 
 
+class EnrollmentInline(admin.TabularInline):
+    model = Course.enrolled_students.through
+
+
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    pass
+    inlines = [EnrollmentInline]
 
 
 @admin.register(Topic)
