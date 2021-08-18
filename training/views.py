@@ -70,7 +70,7 @@ class TrainingSessionViewSet(viewsets.ReadOnlyModelViewSet):
         course_id = kwargs.pop("course_pk")
         try:
             session = TrainingSession.objects.get(
-                course__pk=course_id, user=request.user, in_progress=True
+                course__pk=course_id, trainee=request.user, in_progress=True
             )
         except TrainingSession.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)

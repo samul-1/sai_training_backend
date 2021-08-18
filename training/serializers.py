@@ -65,7 +65,7 @@ class TopicSerializer(TeachersOnlyFieldsModelSerializer):
 class ChoiceSerializer(TeachersOnlyFieldsModelSerializer):
     class Meta:
         model = Choice
-        fields = ["text"]
+        fields = ["id", "text"]
         teachers_only_fields = ["correct"]
 
     def __init__(self, *args, **kwargs):
@@ -105,7 +105,7 @@ class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
 class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
     class Meta:
         model = Question
-        fields = ["text", "imported_from_exam"]
+        fields = ["id", "text", "imported_from_exam"]
         read_only_fields = ["imported_from_exam"]
         teachers_only_fields = ["solution", "difficulty"]
 
