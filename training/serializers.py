@@ -58,7 +58,7 @@ class CourseSerializer(TeachersOnlyFieldsModelSerializer):
 class TopicSerializer(TeachersOnlyFieldsModelSerializer):
     class Meta:
         model = Topic
-        fields = ["name", "description", "items_type"]
+        fields = ["id", "name", "description", "items_type"]
         teachers_only_fields = ["help_text", "error_percentage_for_help_text"]
 
 

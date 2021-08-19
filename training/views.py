@@ -21,7 +21,15 @@ class TrainingSessionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TrainingSessionSerializer
     queryset = TrainingSession.objects.all()
 
-    serializer_action_classes = {"retrieve": TrainingSessionOutcomeSerializer}
+    serializer_action_classes = {
+        "retrieve": TrainingSessionOutcomeSerializer,
+        "list": TrainingSessionOutcomeSerializer,
+    }
+    # todo add filter to prevent users from seeing others' training sessions
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(course=self.kwargs["course_pk"])
 
     def get_serializer_class(self):
         try:
@@ -85,8 +93,24 @@ class TrainingSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CourseViewSet(viewsets.ModelViewSet):
+
     serializer_class = CourseSerializer
     queryset = Course.objects.all()
+
+    def _get_serializer_context(self, request):
+        return {
+            "request": request,
+        }
+
+    @action(detail=True, methods=["post"])
+    def enroll(self, request, **kwargs):
+        course = self.get_object()
+        course.enrolled_students.add(request.user)
+
+        serializer = CourseSerializer(
+            instance=course, context=self._get_serializer_context(request)
+        )
+        return Response(serializer.data)
 
 
 class TrainingTemplateViewSet(viewsets.ModelViewSet):
@@ -95,7 +119,7 @@ class TrainingTemplateViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.filter(course=self.kwargs["course_pk"])
+        return queryset.filter(course=self.kwargs["course_pk"], custom=False)
 
 
 class TopicViewSet(viewsets.ModelViewSet):
