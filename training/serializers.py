@@ -140,9 +140,10 @@ class TrainingSessionSerializer(ReadOnlyModelSerializer):
         self.fields["questions"] = QuestionSerializer(many=True, **kwargs)
 
 
-class TrainingTemplateRuleSerializer(ReadOnlyModelSerializer):
+class TrainingTemplateRuleSerializer(serializers.ModelSerializer):
     difficulty_profile = serializers.CharField(source="difficulty_profile_code")
     topic = serializers.CharField(source="topic.name")
+    amount = serializers.IntegerField()
 
     class Meta:
         model = TrainingTemplateRule
@@ -154,15 +155,19 @@ class TrainingTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TrainingTemplate
-        fields = "__all__"
+        fields = ["id", "rules", "name", "description", "custom"]
 
     def create(self, validated_data):
-        rules_data = validated_data.pop("rules")
+        rules_data = validated_data.pop("trainingtemplaterule_set")
 
         template = TrainingTemplate.objects.create(**validated_data)
 
         # create objects for each rule
         for rule in rules_data:
-            TrainingTemplateRule.objects.create(template=template, **rule)
+            topic_data = rule.pop("topic")
+            topic = Topic.objects.get(course=template.course, name=topic_data["name"])
+            TrainingTemplateRule.objects.create(
+                training_template=template, topic=topic, **rule
+            )
 
         return template

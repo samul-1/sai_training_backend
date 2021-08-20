@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -120,6 +121,18 @@ class TrainingTemplateViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(course=self.kwargs["course_pk"], custom=False)
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        is_custom = not self.request.user.is_teacher
+        serializer.save(
+            course_id=self.kwargs["course_pk"],
+            custom=is_custom,
+            creator=self.request.user,
+        )
 
 
 class TopicViewSet(viewsets.ModelViewSet):
