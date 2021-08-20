@@ -153,7 +153,16 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.filter(topic=self.kwargs["topic_pk"])
+        try:
+            queryset = queryset.filter(course=self.kwargs["course_pk"])
+        except KeyError:
+            pass
+        try:
+            queryset = queryset.filter(topic=self.kwargs["topic_pk"])
+        except KeyError:
+            pass
+
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save(
@@ -161,3 +170,16 @@ class QuestionViewSet(viewsets.ModelViewSet):
             course_id=self.kwargs["course_pk"],
             topic_id=self.kwargs["topic_pk"],
         )
+
+    # def get_serializer(self, *args, **kwargs):
+    #     if isinstance(kwargs.get("data", {}), list):
+    #         kwargs["many"] = True
+    #     return super().get_serializer(*args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        many = isinstance(request.data, list)
+        serializer = self.get_serializer(data=request.data, many=many)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, headers=headers)

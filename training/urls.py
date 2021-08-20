@@ -18,6 +18,8 @@ course_router.register(
     views.TrainingTemplateViewSet,
     basename="course-training-template",
 )
+course_router.register(r"questions", views.QuestionViewSet, basename="course-questions")
+
 course_router.register(
     r"sessions",
     views.TrainingSessionViewSet,

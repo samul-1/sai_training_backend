@@ -102,12 +102,25 @@ class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
         fields = ["id", "score", "questions", "begin_timestamp", "end_timestamp"]
 
 
+# class ListQuestionSerializer(serializers.ListSerializer):
+#     def create(self, validated_data):
+#         # questions = [Question(choices=set(choices), **data) for {"choices": choices, **data} in validated_data]
+#         questions = []
+#         for question_data in validated_data:
+#             choices = question_data.pop("choices")
+#             question = Question(**question_data)
+#             question.choices.set(choices)
+#             questions.append(question)
+#         return Question.objects.bulk_create(questions, ignore_conflicts=True)
+
+
 class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
     class Meta:
         model = Question
         fields = ["id", "text", "imported_from_exam"]
         read_only_fields = ["imported_from_exam"]
         teachers_only_fields = ["solution", "difficulty"]
+        # list_serializer_class = ListQuestionSerializer
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
