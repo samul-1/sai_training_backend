@@ -117,7 +117,7 @@ class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
 class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
     class Meta:
         model = Question
-        fields = ["id", "text", "imported_from_exam"]
+        fields = ["id", "text", "imported_from_exam", "topic"]
         read_only_fields = ["imported_from_exam"]
         teachers_only_fields = ["solution", "difficulty"]
         # list_serializer_class = ListQuestionSerializer
@@ -132,7 +132,8 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
 
     def create(self, validated_data):
         choices_data = validated_data.pop("choices")
-
+        print("VALIDATED DATA")
+        print(validated_data)
         question = Question.objects.create(**validated_data)
 
         # create objects for each choice

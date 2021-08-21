@@ -165,19 +165,24 @@ class QuestionViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
+        topic_pk = self.kwargs.pop("topic_pk", None)
+        kwargs = {}
+        if topic_pk is not None:
+            # if `topic_pk` is in kwargs, it means the viewset is being accessed
+            # from `courses/<id>/topics/<id>/questions`, therefore the question(s)
+            # will be created under the topic specified in the url - otherwise, use
+            # the topic id inside the request data for the question(s)
+            kwargs["topic_id"] = topic_pk
         serializer.save(
             creator=self.request.user,
             course_id=self.kwargs["course_pk"],
-            topic_id=self.kwargs["topic_pk"],
+            **kwargs,
         )
 
-    # def get_serializer(self, *args, **kwargs):
-    #     if isinstance(kwargs.get("data", {}), list):
-    #         kwargs["many"] = True
-    #     return super().get_serializer(*args, **kwargs)
-
     def create(self, request, *args, **kwargs):
+        print(request.data)
         many = isinstance(request.data, list)
+        print(many)
         serializer = self.get_serializer(data=request.data, many=many)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
