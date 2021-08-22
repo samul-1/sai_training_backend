@@ -38,8 +38,8 @@ class TeachersOnlyFieldsModelSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(TeachersOnlyFieldsModelSerializer):
-    creator = serializers.CharField(source="creator.full_name")
-    creator_id = serializers.IntegerField(source="creator.pk")
+    creator = serializers.CharField(source="creator.full_name", required=False)
+    creator_id = serializers.IntegerField(source="creator.pk", required=False)
 
     class Meta:
         model = Course
@@ -97,10 +97,18 @@ class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
     questions = PostSessionQuestionSerializer(
         many=True, source="questiontrainingsessionthroughmodel_set"
     )
+    help_texts = serializers.DictField(source="relevant_help_texts")
 
     class Meta:
         model = TrainingSession
-        fields = ["id", "score", "questions", "begin_timestamp", "end_timestamp"]
+        fields = [
+            "id",
+            "score",
+            "questions",
+            "begin_timestamp",
+            "end_timestamp",
+            "help_texts",
+        ]
 
 
 # class ListQuestionSerializer(serializers.ListSerializer):

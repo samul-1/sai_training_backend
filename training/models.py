@@ -371,6 +371,42 @@ class TrainingSession(models.Model):
             selected_choice__correct=True,
         ).count()
 
+    @property
+    def relevant_help_texts(self):
+        # returns the `help_text` property of the topics for which more than 50%
+        # of the questions in this session have been given a wrong answer
+        ret = {}
+        for topic in [question.topic for question in self.questions.all()]:
+            print(topic)
+            print(
+                self.questiontrainingsessionthroughmodel_set.filter(
+                    question__topic=topic,
+                    selected_choice__isnull=False,
+                    selected_choice__correct=True,
+                ).count()
+            )
+            print(
+                self.questiontrainingsessionthroughmodel_set.filter(
+                    question__topic=topic
+                ).count()
+            )
+            if len(topic.help_text) > 0 and (
+                self.questiontrainingsessionthroughmodel_set.filter(
+                    question__topic=topic,
+                    selected_choice__isnull=False,
+                    selected_choice__correct=True,
+                ).count()
+                <= (
+                    self.questiontrainingsessionthroughmodel_set.filter(
+                        question__topic=topic
+                    ).count()
+                    / 2
+                )
+            ):
+                ret[topic.name] = topic.help_text
+
+        return ret
+
     def turn_in(self, answers):
         if not self.in_progress:
             raise ValidationError("Session is over.")
