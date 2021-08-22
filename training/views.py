@@ -126,6 +126,10 @@ class TrainingTemplateViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         is_custom = not self.request.user.is_teacher
         serializer.save(
@@ -179,6 +183,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
             **kwargs,
         )
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         print(request.data)
         many = isinstance(request.data, list)
@@ -188,3 +193,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, headers=headers)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)

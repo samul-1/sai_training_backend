@@ -5,6 +5,7 @@ from django.urls import include, path
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("training.urls")),
+    path("users/", include("users.urls")),
     path("", include("djoser.urls")),
     url(r"^auth/", include("rest_framework_social_oauth2.urls")),
 ]

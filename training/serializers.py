@@ -39,11 +39,12 @@ class TeachersOnlyFieldsModelSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(TeachersOnlyFieldsModelSerializer):
     creator = serializers.CharField(source="creator.full_name")
+    creator_id = serializers.IntegerField(source="creator.pk")
 
     class Meta:
         model = Course
         fields = ["id", "name", "description", "creator", "number_enrolled"]
-        teachers_only_fields = ["allowed_teachers"]
+        teachers_only_fields = ["allowed_teachers", "creator_id"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -185,3 +186,21 @@ class TrainingTemplateSerializer(serializers.ModelSerializer):
             )
 
         return template
+
+    def update(self, instance, validated_data):
+        rules_data = validated_data.pop("trainingtemplaterule_set")
+
+        instance = super().update(instance, validated_data)
+
+        instance.rules.clear()
+
+        for rule_data in rules_data:
+            topic_data = rule_data.pop("topic")
+            print(topic_data)
+            topic = Topic.objects.get(name=topic_data["name"], course=instance.course)
+            rule = TrainingTemplateRule.objects.create(
+                training_template=instance, topic=topic, **rule_data
+            )
+            instance.rules.add()
+
+        return instance
