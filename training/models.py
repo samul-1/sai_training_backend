@@ -377,19 +377,6 @@ class TrainingSession(models.Model):
         # of the questions in this session have been given a wrong answer
         ret = {}
         for topic in [question.topic for question in self.questions.all()]:
-            print(topic)
-            print(
-                self.questiontrainingsessionthroughmodel_set.filter(
-                    question__topic=topic,
-                    selected_choice__isnull=False,
-                    selected_choice__correct=True,
-                ).count()
-            )
-            print(
-                self.questiontrainingsessionthroughmodel_set.filter(
-                    question__topic=topic
-                ).count()
-            )
             if len(topic.help_text) > 0 and (
                 self.questiontrainingsessionthroughmodel_set.filter(
                     question__topic=topic,

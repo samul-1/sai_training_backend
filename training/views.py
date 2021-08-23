@@ -2,10 +2,22 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from training.filters import (  # EnrolledOrAllowedCoursesOnly,
+    StudentOrAllowedCoursesOnly,
+    TeacherOrPersonalTrainingSessionsOnly,
+)
 from training.models import TrainingTemplate
+from training.permissions import (
+    AllowedTeacherOrEnrolledOnly,
+    EnrolledOnly,
+    StudentsOnly,
+    TeacherOrReadOnly,
+    TeachersOnly,
+)
 from training.serializers import TrainingTemplateSerializer
 
 from .models import Course, Question, Topic, TrainingSession
@@ -22,11 +34,13 @@ class TrainingSessionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TrainingSessionSerializer
     queryset = TrainingSession.objects.all()
 
+    permission_classes = [IsAuthenticated, EnrolledOnly]
+    filter_backends = [TeacherOrPersonalTrainingSessionsOnly]
+
     serializer_action_classes = {
         "retrieve": TrainingSessionOutcomeSerializer,
         "list": TrainingSessionOutcomeSerializer,
     }
-    # todo add filter to prevent users from seeing others' training sessions
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -94,9 +108,13 @@ class TrainingSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CourseViewSet(viewsets.ModelViewSet):
-
     serializer_class = CourseSerializer
     queryset = Course.objects.all()
+    permission_classes = [
+        IsAuthenticated,
+        TeacherOrReadOnly,
+    ]
+    filter_backends = [StudentOrAllowedCoursesOnly]
 
     def perform_create(self, serializer):
         serializer.save(
@@ -108,7 +126,11 @@ class CourseViewSet(viewsets.ModelViewSet):
             "request": request,
         }
 
-    @action(detail=True, methods=["post"])
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsAuthenticated, StudentsOnly],
+    )
     def enroll(self, request, **kwargs):
         course = self.get_object()
         course.enrolled_students.add(request.user)
@@ -122,6 +144,8 @@ class CourseViewSet(viewsets.ModelViewSet):
 class TrainingTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = TrainingTemplateSerializer
     queryset = TrainingTemplate.objects.all()
+    permission_classes = [IsAuthenticated, AllowedTeacherOrEnrolledOnly]
+    # filter_backends = [EnrolledOrAllowedCoursesOnly]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -147,6 +171,12 @@ class TrainingTemplateViewSet(viewsets.ModelViewSet):
 class TopicViewSet(viewsets.ModelViewSet):
     serializer_class = TopicSerializer
     queryset = Topic.objects.all()
+    permission_classes = [
+        IsAuthenticated,
+        AllowedTeacherOrEnrolledOnly,
+        TeacherOrReadOnly,
+    ]
+    # filter_backends = [EnrolledOrAllowedCoursesOnly]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -159,6 +189,12 @@ class TopicViewSet(viewsets.ModelViewSet):
 class QuestionViewSet(viewsets.ModelViewSet):
     serializer_class = QuestionSerializer
     queryset = Question.objects.all().prefetch_related("choices")
+    permission_classes = [
+        IsAuthenticated,
+        AllowedTeacherOrEnrolledOnly,
+        TeacherOrReadOnly,
+    ]
+    # filter_backends = [EnrolledOrAllowedCoursesOnly]
 
     def get_queryset(self):
         queryset = super().get_queryset()
