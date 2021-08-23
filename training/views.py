@@ -73,8 +73,8 @@ class TrainingSessionViewSet(viewsets.ReadOnlyModelViewSet):
                 )
             except KeyError:
                 return Response(
-                    status=status.HTTP_400_BAD_REQUEST,
-                    data={"message": "Please specify a template id."},
+                    status=status.HTTP_204_NO_CONTENT,
+                    # data={"message": "Please specify a template id."},
                 )
             except TrainingTemplate.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)

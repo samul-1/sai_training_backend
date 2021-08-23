@@ -51,9 +51,17 @@ class CourseSerializer(TeachersOnlyFieldsModelSerializer):
 
         if not self.context["request"].user.is_teacher:
             self.fields["enrolled"] = serializers.SerializerMethodField()
+            self.fields["in_progress_session"] = serializers.SerializerMethodField()
 
     def get_enrolled(self, obj):
         return self.context["request"].user in obj.enrolled_students.all()
+
+    def get_in_progress_session(self, obj):
+        return TrainingSession.objects.filter(
+            trainee=self.context["request"].user,
+            course=obj,
+            in_progress=True,
+        ).exists()
 
 
 class TopicSerializer(TeachersOnlyFieldsModelSerializer):
