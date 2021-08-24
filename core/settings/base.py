@@ -48,6 +48,9 @@ INSTALLED_APPS = [
     "rest_framework_social_oauth2",
     "corsheaders",
     "djoser",
+    "django_celery_results",
+    "celery",
+    "redis",
 ]
 
 
@@ -188,3 +191,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 
 
 ADMINS = [("Samuele", "s.bonini7@studenti.unipi.it")]
+
+# Celery settings
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_BROKER_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
