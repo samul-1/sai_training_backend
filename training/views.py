@@ -1,11 +1,12 @@
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from training import texts
 from training.filters import (  # EnrolledOrAllowedCoursesOnly,
     StudentOrAllowedCoursesOnly,
     TeacherOrPersonalTrainingSessionsOnly,
@@ -181,6 +182,15 @@ class TopicViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.filter(course=self.kwargs["course_pk"])
+
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            return Response(
+                status=status.HTTP_400_BAD_REQUEST,
+                data={"message": texts.TOPIC_NAME_ALREADY_EXISTS},
+            )
 
     def perform_create(self, serializer):
         serializer.save(course_id=self.kwargs["course_pk"])

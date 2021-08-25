@@ -1,0 +1,1 @@
+TOPIC_NAME_ALREADY_EXISTS = "Esiste già un argomento con questo nome."

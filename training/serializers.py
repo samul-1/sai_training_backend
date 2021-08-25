@@ -119,28 +119,22 @@ class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
         ]
 
 
-# class ListQuestionSerializer(serializers.ListSerializer):
-#     def create(self, validated_data):
-#         # questions = [Question(choices=set(choices), **data) for {"choices": choices, **data} in validated_data]
-#         questions = []
-#         for question_data in validated_data:
-#             choices = question_data.pop("choices")
-#             question = Question(**question_data)
-#             question.choices.set(choices)
-#             questions.append(question)
-#         return Question.objects.bulk_create(questions, ignore_conflicts=True)
-
-
 class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
+    # send difficulty as string rather than number for easier manipulation in frontend
+    difficulty = serializers.CharField()
+
     class Meta:
         model = Question
         fields = ["id", "text", "imported_from_exam", "topic"]
         read_only_fields = ["imported_from_exam"]
         teachers_only_fields = ["solution", "difficulty"]
-        # list_serializer_class = ListQuestionSerializer
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # parameter `many` gets passed from the view to handle possible bulk creation:
+        # need to pop it to avoid passing it onto the ChoiceSerializer
+        kwargs.pop("many", None)
 
         self.fields["choices"] = ChoiceSerializer(many=True, **kwargs)
 
