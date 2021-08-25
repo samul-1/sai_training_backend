@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -12,6 +13,7 @@ from training.filters import (  # EnrolledOrAllowedCoursesOnly,
     TeacherOrPersonalTrainingSessionsOnly,
 )
 from training.models import TrainingTemplate
+from training.pagination import CourseItemPagination
 from training.permissions import (
     AllowedTeacherOrEnrolledOnly,
     EnrolledOnly,
@@ -204,7 +206,9 @@ class QuestionViewSet(viewsets.ModelViewSet):
         AllowedTeacherOrEnrolledOnly,
         TeacherOrReadOnly,
     ]
-    # filter_backends = [EnrolledOrAllowedCoursesOnly]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["difficulty"]
+    pagination_class = CourseItemPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
