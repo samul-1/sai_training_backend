@@ -1,4 +1,5 @@
 from django.contrib import admin
+from tickets.models import Ticket
 from users.models import User
 
 from training.models import *
@@ -6,6 +7,11 @@ from training.models import *
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
     pass
 
 
@@ -46,14 +52,6 @@ class TrainingTemplateRuleAdmin(admin.ModelAdmin):
 class TrainingTemplateRuleInline(admin.TabularInline):
     model = TrainingTemplate.rules.through
     readonly_fields = ("amount",)
-    # fieldsets = (
-    #     (
-    #         None,
-    #         {
-    #             "fields": (("amount"),),
-    #         },
-    #     ),
-    # )
 
 
 @admin.register(TrainingTemplate)
