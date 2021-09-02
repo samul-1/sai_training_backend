@@ -12,7 +12,7 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = ("created",)
 
 
 @admin.register(Question)

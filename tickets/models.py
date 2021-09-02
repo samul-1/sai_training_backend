@@ -11,4 +11,11 @@ class Ticket(models.Model):
     )
     created = models.DateTimeField(auto_now_add=True)
     message = models.TextField()
-    additional_data = models.JSONField(blank=True)
+    additional_data = models.JSONField(blank=True, null=True)
+
+    def __str__(self):
+        return (
+            (self.user.full_name if self.user is not None else "Anonyumous")
+            + " - "
+            + self.message[:100]
+        )

@@ -7,5 +7,6 @@ urlpatterns = [
     path("", include("training.urls")),
     path("users/", include("users.urls")),
     path("", include("djoser.urls")),
+    path("tickets/", include("tickets.urls")),
     url(r"^auth/", include("rest_framework_social_oauth2.urls")),
 ]
