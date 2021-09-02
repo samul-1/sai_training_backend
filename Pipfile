@@ -15,6 +15,7 @@ django-cors-headers = "*"
 django-celery-results = "*"
 redis = "*"
 celery = "*"
+gunicorn = "*"
 
 [dev-packages]
 
