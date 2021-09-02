@@ -16,6 +16,8 @@ django-celery-results = "*"
 redis = "*"
 celery = "*"
 gunicorn = "*"
+dj-database-url = "*"
+whitenoise = "*"
 
 [dev-packages]
 
