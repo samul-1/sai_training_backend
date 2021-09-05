@@ -89,22 +89,31 @@ class PostSessionChoiceSerializer(ReadOnlyModelSerializer):
         model = Choice
         fields = ["id", "text", "correct"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if not self.context["request"].user.is_teacher:
+            self.fields["text"] = serializers.CharField(source="rendered_text")
+
 
 class PostSessionQuestionSerializer(ReadOnlyModelSerializer):
-    choices = PostSessionChoiceSerializer(source="question.choices", many=True)
     text = serializers.CharField(source="question.rendered_text")
     solution = serializers.CharField(source="question.rendered_solution")
     id = serializers.IntegerField(source="question.id")
 
     class Meta:
         model = QuestionTrainingSessionThroughModel
-        fields = ["id", "text", "solution", "choices", "selected_choice"]
+        fields = ["id", "text", "solution", "selected_choice"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        kwargs.pop("source")
+        self.fields["choices"] = PostSessionChoiceSerializer(
+            source="question.choices", many=True, **kwargs
+        )
 
 
 class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
-    questions = PostSessionQuestionSerializer(
-        many=True, source="questiontrainingsessionthroughmodel_set"
-    )
     help_texts = serializers.DictField(source="relevant_help_texts")
 
     class Meta:
@@ -117,6 +126,12 @@ class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
             "end_timestamp",
             "help_texts",
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["questions"] = PostSessionQuestionSerializer(
+            many=True, source="questiontrainingsessionthroughmodel_set", **kwargs
+        )
 
 
 class QuestionSerializer(TeachersOnlyFieldsModelSerializer):

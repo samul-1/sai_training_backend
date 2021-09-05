@@ -15,7 +15,7 @@ class Ticket(models.Model):
 
     def __str__(self):
         return (
-            (self.user.full_name if self.user is not None else "Anonyumous")
+            (self.user.full_name if self.user is not None else "Anonymous")
             + " - "
             + self.message[:100]
         )
