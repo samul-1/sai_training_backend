@@ -37,4 +37,4 @@ class TeacherOrPersonalTrainingSessionsOnly(filters.BaseFilterBackend):
         if request.user.is_teacher:
             return queryset
 
-        return queryset.filter(trainee=request.user)
+        return queryset.filter(trainee=request.user, in_progress=False)
