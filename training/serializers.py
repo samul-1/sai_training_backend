@@ -158,8 +158,6 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
 
     def create(self, validated_data):
         choices_data = validated_data.pop("choices")
-        print("VALIDATED DATA")
-        print(validated_data)
         question = Question.objects.create(**validated_data)
 
         # create objects for each choice
@@ -167,6 +165,40 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
             Choice.objects.create(question=question, **choice)
 
         return question
+
+    def update(self, instance, validated_data):
+        # get data about choices
+        choices_data = validated_data.pop("choices")
+
+        # update question instance
+        instance = super().update(instance, validated_data)
+
+        choices = instance.choices.all()
+
+        # update each choice
+        for choice_data in choices_data:
+            if choice_data.get("id") is not None:
+                choice = Choice.objects.get(pk=choice_data["id"])
+                save_id = choice_data.pop("id")
+            else:
+                choice = Choice.objects.create(question=instance, correct=True)
+                # choice.save()
+                save_id = choice.pk
+
+            serializer = ChoiceSerializer(
+                choice, data=choice_data, context=self.context
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.update(instance=choice, validated_data=choice_data)
+
+            # remove choice from the list of those still to process
+            choices = choices.exclude(pk=save_id)
+
+        # remove any choices for which data wasn't sent (i.e. user deleted them)
+        for choice in choices:
+            choice.delete()
+
+        return instance
 
 
 class TrainingSessionSerializer(ReadOnlyModelSerializer):

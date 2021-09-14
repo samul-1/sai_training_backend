@@ -11,7 +11,7 @@ def render_tex_fields(sender, instance, created, **kwargs):
     re_render_fields = {}
     for (source, target) in sender.renderable_tex_fields:
         value_changed = created or (
-            getattr(instance, source) != getattr(instance, f"_old_{source}")
+            getattr(instance, source) != getattr(instance, f"_old_{source}", "")
         )
         if value_changed:
             re_render_fields[target] = getattr(instance, source)

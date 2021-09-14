@@ -441,7 +441,7 @@ class QuestionTrainingSessionThroughModel(models.Model):
         Choice,
         blank=True,
         null=True,
-        on_delete=models.PROTECT,
+        on_delete=models.CASCADE,
     )
 
     def clean(self, *args, **kwargs):
