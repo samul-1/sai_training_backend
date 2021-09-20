@@ -1,9 +1,11 @@
+import os
+
 from django.conf.urls import url
 from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path(os.environ.get("ADMIN_URL", "admin/"), admin.site.urls),
     path("", include("training.urls")),
     path("users/", include("users.urls")),
     path("", include("djoser.urls")),
