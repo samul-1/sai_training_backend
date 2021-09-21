@@ -14,4 +14,9 @@ class User(AbstractUser):
 
     @property
     def full_name(self):
-        return self.first_name.capitalize() + " " + self.last_name.capitalize()
+        return " ".join(
+            [
+                t.capitalize()
+                for t in (self.first_name + " " + self.last_name).split(" ")
+            ]
+        )
