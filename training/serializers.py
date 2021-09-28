@@ -203,6 +203,29 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
         return instance
 
 
+class ProgrammingExerciseSerializer(TeachersOnlyFieldsModelSerializer):
+    # send difficulty as string rather than number for easier manipulation in frontend
+    difficulty = serializers.CharField()
+
+    class Meta:
+        model = ProgrammingExercise
+        fields = ["id", "text", "imported_from_exam", "topic"]
+        read_only_fields = ["imported_from_exam"]
+        teachers_only_fields = ["solution", "difficulty"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # parameter `many` gets passed from the view to handle possible bulk creation:
+        # need to pop it to avoid passing it onto the ChoiceSerializer
+        kwargs.pop("many", None)
+
+        # self.fields["choices"] = ChoiceSerializer(many=True, **kwargs)
+
+        if not self.context["request"].user.is_teacher:
+            self.fields["text"] = serializers.CharField(source="rendered_text")
+
+
 class TrainingSessionSerializer(ReadOnlyModelSerializer):
     class Meta:
         model = TrainingSession

@@ -7,11 +7,17 @@ from . import views
 router = routers.SimpleRouter()
 router.register(r"courses", views.CourseViewSet, basename="courses")
 
-# achieves `/courses/{pk}/topics/{pk}/questions`
+# achieves `/courses/{pk}/topics/{pk}/questions` and
+# `/courses/{pk}/topics/{pk}/programming_exercise`
 course_router = routers.NestedSimpleRouter(router, r"courses", lookup="course")
 course_router.register(r"topics", views.TopicViewSet, basename="course-topics")
 topic_router = routers.NestedSimpleRouter(course_router, r"topics", lookup="topic")
 topic_router.register(r"questions", views.QuestionViewSet, basename="topic-questions")
+topic_router.register(
+    r"programming_exercises",
+    views.ProgrammingExerciseViewSet,
+    basename="topic-exercises",
+)
 
 course_router.register(
     r"templates",
@@ -19,6 +25,11 @@ course_router.register(
     basename="course-training-template",
 )
 course_router.register(r"questions", views.QuestionViewSet, basename="course-questions")
+course_router.register(
+    r"programming_exercises",
+    views.ProgrammingExerciseViewSet,
+    basename="course-questions",
+)
 
 course_router.register(
     r"sessions",

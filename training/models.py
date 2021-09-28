@@ -228,20 +228,20 @@ class AbstractItem(models.Model):
     def clean(self, *args, **kwargs):
         if self.topic not in self.course.topics.all():
             raise ValidationError("Chosen topic doesn't belong to chosen course")
-        if (
-            self.topic.items_type == Topic.PROGRAMMING_EXERCISES
-            and type(self) == Question
-        ):
-            raise ValidationError(
-                "Cannot add a question to a topic for programming exercises"
-            )
-        if (
-            self.topic.items_type == Topic.QUESTIONS
-            and type(self) == ProgrammingExercise
-        ):
-            raise ValidationError(
-                "Cannot add a programming exercise to a topic for questions"
-            )
+        # if (
+        #     self.topic.items_type == Topic.PROGRAMMING_EXERCISES
+        #     and type(self) == Question
+        # ):
+        #     raise ValidationError(
+        #         "Cannot add a question to a topic for programming exercises"
+        #     )
+        # if (
+        #     self.topic.items_type == Topic.QUESTIONS
+        #     and type(self) == ProgrammingExercise
+        # ):
+        #     raise ValidationError(
+        #         "Cannot add a programming exercise to a topic for questions"
+        #     )
 
     def save(self, *args, **kwargs):
         self.full_clean()

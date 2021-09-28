@@ -12,7 +12,7 @@ from training.filters import (  # EnrolledOrAllowedCoursesOnly,
     StudentOrAllowedCoursesOnly,
     TeacherOrPersonalTrainingSessionsOnly,
 )
-from training.models import TrainingTemplate
+from training.models import ProgrammingExercise, TrainingTemplate
 from training.pagination import CourseItemPagination
 from training.permissions import (
     AllowedTeacherOrEnrolledOnly,
@@ -21,7 +21,10 @@ from training.permissions import (
     TeacherOrReadOnly,
     TeachersOnly,
 )
-from training.serializers import TrainingTemplateSerializer
+from training.serializers import (
+    ProgrammingExerciseSerializer,
+    TrainingTemplateSerializer,
+)
 
 from .models import Course, Question, Topic, TrainingSession
 from .serializers import (
@@ -184,8 +187,17 @@ class TopicViewSet(viewsets.ModelViewSet):
     # filter_backends = [EnrolledOrAllowedCoursesOnly]
 
     def get_queryset(self):
+        from django.db.models import Count
+
         queryset = super().get_queryset()
-        return queryset.filter(course=self.kwargs["course_pk"])
+        queryset = queryset.filter(course=self.kwargs["course_pk"])
+        if not self.request.user.is_teacher:
+            # only return topics that contain at least one item
+            queryset = queryset.annotate(questions_count=Count("questions")).filter(
+                questions_count__gt=0
+            )
+
+        return queryset
 
     def create(self, request, *args, **kwargs):
         try:
@@ -233,6 +245,63 @@ class QuestionViewSet(viewsets.ModelViewSet):
             # from `courses/<id>/topics/<id>/questions`, therefore the question(s)
             # will be created under the topic specified in the url - otherwise, use
             # the topic id inside the request data for the question(s)
+            kwargs["topic_id"] = topic_pk
+        serializer.save(
+            creator=self.request.user,
+            course_id=self.kwargs["course_pk"],
+            **kwargs,
+        )
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        print(request.data)
+        many = isinstance(request.data, list)
+        print(many)
+        serializer = self.get_serializer(data=request.data, many=many)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, headers=headers)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+
+class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
+    serializer_class = ProgrammingExerciseSerializer
+    queryset = ProgrammingExercise.objects.all().prefetch_related("testcases")
+    permission_classes = [
+        IsAuthenticated,
+        AllowedTeacherOrEnrolledOnly,
+        TeacherOrReadOnly,
+    ]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["difficulty"]
+    pagination_class = CourseItemPagination
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        try:
+            queryset = queryset.filter(course=self.kwargs["course_pk"])
+        except KeyError:
+            pass
+        try:
+            queryset = queryset.filter(topic=self.kwargs["topic_pk"])
+        except KeyError:
+            pass
+
+        return queryset
+
+    def perform_create(self, serializer):
+        topic_pk = self.kwargs.pop("topic_pk", None)
+        kwargs = {}
+        if topic_pk is not None:
+            # if `topic_pk` is in kwargs, it means the viewset is being accessed
+            # from `courses/<id>/topics/<id>/programming_exercises`,
+            # therefore the exercise(s) will be created
+            # under the topic specified in the url - otherwise, use
+            # the topic id inside the request data for the exercise(s)
             kwargs["topic_id"] = topic_pk
         serializer.save(
             creator=self.request.user,
