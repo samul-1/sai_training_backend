@@ -29,6 +29,9 @@ class Course(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True)
 
+    class Meta:
+        ordering = ["pk"]
+
     def __str__(self):
         return self.name
 
@@ -86,6 +89,7 @@ class Topic(models.Model):
     )
 
     class Meta:
+        ordering = ["pk"]
         constraints = [
             models.UniqueConstraint(
                 fields=["course", "name"], name="same_course_topic_name_unique"
@@ -112,6 +116,9 @@ class TrainingTemplate(models.Model):
     )
     custom = models.BooleanField(default=False)
     rules = models.ManyToManyField(Topic, through="TrainingTemplateRule")
+
+    class Meta:
+        ordering = ["pk"]
 
 
 class TrainingTemplateRule(models.Model):
@@ -143,6 +150,7 @@ class TrainingTemplateRule(models.Model):
     objects = TrainingTemplateRuleManager()
 
     class Meta:
+        ordering = ["pk"]
         constraints = [
             models.UniqueConstraint(
                 fields=["topic", "training_template"], name="topic_template_unique"
@@ -212,6 +220,7 @@ class AbstractItem(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ["pk"]
 
     def __str__(self):
         return self.text[:100]
@@ -309,6 +318,9 @@ class ExerciseTestCase(models.Model):
     code = models.TextField()
     public = models.BooleanField(default=True)
 
+    class Meta:
+        ordering = ["pk"]
+
 
 class ExerciseSubmission(models.Model):
     user = models.ForeignKey(
@@ -326,12 +338,18 @@ class ExerciseSubmission(models.Model):
         ExerciseTestCase, through="TestCaseOutcomeThroughModel"
     )
 
+    class Meta:
+        ordering = ["pk"]
+
 
 class TestCaseOutcomeThroughModel(models.Model):
     testcase = models.ForeignKey(ExerciseTestCase, on_delete=models.CASCADE)
     submission = models.ForeignKey(ExerciseSubmission, on_delete=models.CASCADE)
     passed = models.BooleanField()
     details = models.JSONField()
+
+    class Meta:
+        ordering = ["pk"]
 
 
 class TrainingSession(models.Model):
@@ -361,6 +379,9 @@ class TrainingSession(models.Model):
     in_progress = models.BooleanField(default=True)
 
     objects = TrainingSessionManager()
+
+    class Meta:
+        ordering = ["pk"]
 
     @property
     def score(self):
@@ -443,6 +464,9 @@ class QuestionTrainingSessionThroughModel(models.Model):
         null=True,
         on_delete=models.CASCADE,
     )
+
+    class Meta:
+        ordering = ["training_session_id", "position"]
 
     def clean(self, *args, **kwargs):
         if (
