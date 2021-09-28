@@ -220,7 +220,7 @@ class AbstractItem(models.Model):
 
     class Meta:
         abstract = True
-        ordering = ["pk"]
+        # ordering = ["pk"] can this be done here?
 
     def __str__(self):
         return self.text[:100]
@@ -276,6 +276,9 @@ class Question(TrackRenderableFieldsMixin, AbstractItem):
         ("solution", "rendered_solution"),
     ]
 
+    class Meta:
+        ordering = ["pk"]
+
 
 class Choice(TrackRenderableFieldsMixin):
     question = models.ForeignKey(
@@ -290,6 +293,9 @@ class Choice(TrackRenderableFieldsMixin):
     renderable_tex_fields = [
         ("text", "rendered_text"),
     ]
+
+    class Meta:
+        ordering = ["pk"]
 
     def __str__(self):
         return f"{self.text[:100]} ({str(self.question)})"
@@ -307,6 +313,9 @@ class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
         ("text", "rendered_text"),
         ("solution", "rendered_solution"),
     ]
+
+    class Meta:
+        ordering = ["pk"]
 
 
 class ExerciseTestCase(models.Model):
