@@ -43,7 +43,14 @@ def tex_to_svg(formula):
                 ],
             )
             # strip off the "b'" and "\n'"
-            output_str += str(res)[2:-3]
+            rendered_token = str(res)[2:-3]
+            svg_occurrence = rendered_token.find("<svg") + 4
+            rendered_token = (
+                rendered_token[:svg_occurrence]
+                + ' class="inline"'
+                + rendered_token[svg_occurrence:]
+            )
+            output_str += rendered_token
             if token[1] == "$":  # close <p> tag
                 output_str += "</p>"
         else:
