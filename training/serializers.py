@@ -181,8 +181,10 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
                 choice = Choice.objects.get(pk=choice_data["id"])
                 save_id = choice_data.pop("id")
             else:
-                choice = Choice.objects.create(question=instance, correct=True)
-                # choice.save()
+                choice = Choice.objects.create(
+                    question=instance,
+                    correct=True,  # dummy value for db constraint, will be overwritten by whatever is in `choice_data`
+                )
                 save_id = choice.pk
 
             serializer = ChoiceSerializer(
@@ -204,7 +206,7 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
 class TrainingSessionSerializer(ReadOnlyModelSerializer):
     class Meta:
         model = TrainingSession
-        fields = ["questions", "begin_timestamp"]
+        fields = ["id", "questions", "begin_timestamp"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
