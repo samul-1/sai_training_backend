@@ -25,9 +25,23 @@ class ChoiceAdmin(admin.ModelAdmin):
     pass
 
 
+@admin.register(ExerciseTestCase)
+class ExerciseTestCaseAdmin(admin.ModelAdmin):
+    pass
+
+
 @admin.register(ProgrammingExercise)
 class ProgrammingExerciseAdmin(admin.ModelAdmin):
     pass
+
+
+class SubmissionTestCaseOutcomeInline(admin.TabularInline):
+    model = ExerciseSubmission.outcomes.through
+
+
+@admin.register(ExerciseSubmission)
+class ExerciseSubmissionAdmin(admin.ModelAdmin):
+    inlines = [SubmissionTestCaseOutcomeInline]
 
 
 class EnrollmentInline(admin.TabularInline):

@@ -1,9 +1,12 @@
+import json
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from users.models import User
 
 import training.signals
+from training.node.utils import run_code_in_vm
 
 from .managers import TrainingSessionManager, TrainingTemplateRuleManager
 
@@ -317,6 +320,9 @@ class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
     class Meta:
         ordering = ["pk"]
 
+    def __str__(self):
+        return self.text[:100]
+
 
 class ExerciseTestCase(models.Model):
     exercise = models.ForeignKey(
@@ -329,6 +335,9 @@ class ExerciseTestCase(models.Model):
 
     class Meta:
         ordering = ["pk"]
+
+    def __str__(self):
+        return f"{str(self.exercise)} - {self.code}"
 
 
 class ExerciseSubmission(models.Model):
@@ -346,16 +355,45 @@ class ExerciseSubmission(models.Model):
     outcomes = models.ManyToManyField(
         ExerciseTestCase, through="TestCaseOutcomeThroughModel"
     )
+    error = models.TextField(blank=True)
 
     class Meta:
         ordering = ["pk"]
+
+    def save(self, *args, **kwargs):
+        creating = self.pk is None
+        super().save(*args, **kwargs)
+        if creating:
+            testcases_json = [
+                {
+                    "id": t.id,
+                    "assertion": t.code,
+                }
+                for t in self.exercise.testcases.all()
+            ]
+            run_results = run_code_in_vm(self.code, testcases_json)
+
+            if "error" in run_results:
+                self.error = run_results["error"]
+                self.save()
+            else:
+                outcomes = run_results["tests"]
+                for testcase_outcome in outcomes:
+                    self.outcomes.add(
+                        ExerciseTestCase.objects.get(pk=testcase_outcome["id"]),
+                        through_defaults={
+                            "passed": testcase_outcome["passed"],
+                            "details": testcase_outcome.get("error", ""),
+                        },
+                    )
+                print(outcomes)
 
 
 class TestCaseOutcomeThroughModel(models.Model):
     testcase = models.ForeignKey(ExerciseTestCase, on_delete=models.CASCADE)
     submission = models.ForeignKey(ExerciseSubmission, on_delete=models.CASCADE)
     passed = models.BooleanField()
-    details = models.JSONField()
+    details = models.JSONField(blank=True)
 
     class Meta:
         ordering = ["pk"]

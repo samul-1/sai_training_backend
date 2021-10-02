@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
-from training.models import QuestionTrainingSessionThroughModel
+from training.models import (
+    QuestionTrainingSessionThroughModel,
+    TestCaseOutcomeThroughModel,
+)
 
 from .models import (
     Choice,
@@ -203,13 +206,44 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
         return instance
 
 
+class TestCaseOutcomeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TestCaseOutcomeThroughModel
+        fields = ["passed", "details"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["code"] = serializers.CharField(source="testcase.code")
+
+
+class SubmissionSerializer(serializers.ModelSerializer):
+    outcomes = TestCaseOutcomeSerializer(
+        source="testcaseoutcomethroughmodel_set", many=True
+    )
+
+    class Meta:
+        model = ExerciseSubmission
+        fields = ["id", "code", "outcomes"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        return queryset.filter(user=self.context["request"].user)
+
+
+class ExerciseTestCaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExerciseTestCase
+        fields = ["code"]
+
+
 class ProgrammingExerciseSerializer(TeachersOnlyFieldsModelSerializer):
     # send difficulty as string rather than number for easier manipulation in frontend
     difficulty = serializers.CharField()
 
     class Meta:
         model = ProgrammingExercise
-        fields = ["id", "text", "imported_from_exam", "topic"]
+        fields = ["id", "text", "imported_from_exam", "topic", "testcases"]
         read_only_fields = ["imported_from_exam"]
         teachers_only_fields = ["solution", "difficulty"]
 
@@ -220,10 +254,12 @@ class ProgrammingExerciseSerializer(TeachersOnlyFieldsModelSerializer):
         # need to pop it to avoid passing it onto the ChoiceSerializer
         kwargs.pop("many", None)
 
-        # self.fields["choices"] = ChoiceSerializer(many=True, **kwargs)
+        self.fields["testcases"] = ExerciseTestCaseSerializer(many=True, **kwargs)
 
         if not self.context["request"].user.is_teacher:
             self.fields["text"] = serializers.CharField(source="rendered_text")
+
+            self.fields["submissions"] = SubmissionSerializer(many=True)
 
 
 class TrainingSessionSerializer(ReadOnlyModelSerializer):
