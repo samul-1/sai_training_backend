@@ -224,7 +224,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ExerciseSubmission
-        fields = ["id", "code", "outcomes"]
+        fields = ["id", "code", "outcomes", "error"]
 
     def get_queryset(self):
         queryset = super().get_queryset()
