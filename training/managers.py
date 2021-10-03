@@ -1,72 +1,96 @@
 import math as m
 
+from django.apps import apps
 from django.db import models
+
+from .logic import get_items
 
 
 class TrainingSessionManager(models.Manager):
     def create(self, *args, **kwargs):
-        from .difficulty_profiles import get_last_level_checked, get_levels_range
-        from .models import AbstractItem
-
         session = super().create(*args, **kwargs)
 
-        # keeps track of the order questions are added in
         position = 0
-
-        # iterate over the session's template rules and pick random questions
-        # for each topic according to the rules
         for rule in session.training_template.trainingtemplaterule_set.all():
-            # pass through each level twice: this is needed in case a level can't satisfy
-            # the requirement and neither can any subsequent level - after looping through
-            # the levels, each previously visited level has a second chance to fill in the
-            # debt from the previously visited level(s)
-            levels_range = get_levels_range(rule.difficulty_profile, rounds=2)
-
-            remainder_last_level = 0
-            second_round = False
-            for level in levels_range:
-                level = level % (AbstractItem.VERY_HARD + 1)
-
-                # the amount of questions needed for this level is the value in the field
-                # `amount_<level_name>` plus the difference between the requested amount for
-                # the previous level and the amount that was actually able to be supplied
-                amount = (
-                    0
-                    if second_round
-                    else getattr(
-                        rule, f"amount_{AbstractItem.get_difficulty_level_name(level)}"
-                    )
-                )
-                amount += remainder_last_level
-
-                # get random questions for given topic and difficulty level
-                questions = (
-                    session.course.questions.filter(
-                        topic=rule.topic,
-                        difficulty=level,
-                    )
-                    .exclude(pk__in=session.questions.all())
-                    .order_by("?")[:amount]
-                )
-
-                for question in questions:
-                    session.questions.add(
-                        question, through_defaults={"position": position}
-                    )
-                    position += 1
-
-                remainder_last_level = amount - questions.count()
-
-                if level == get_last_level_checked(rule.difficulty_profile):
-                    if remainder_last_level == 0:
-                        # we iterated over all the levels once and there aren't any
-                        # questions left to add - we're done
-                        break
-                    else:
-                        # there are leftover questions to be added: go back to the
-                        # first level and try to fill the gap
-                        second_round = True
+            questions = get_items(
+                apps.get_model(app_label="training", model_name="Question"),
+                rule.topic,
+                {
+                    "very_easy": rule.amount_very_easy,
+                    "easy": rule.amount_easy,
+                    "medium": rule.amount_medium,
+                    "hard": rule.amount_hard,
+                    "very_hard": rule.amount_very_hard,
+                },
+                rule.difficulty_profile,
+                [],
+            )
+            for question in questions:
+                session.questions.add(question, through_defaults={"position": position})
+                position += 1
         return session
+        # from .difficulty_profiles import get_last_level_checked, get_levels_range
+        # from .models import AbstractItem
+
+        # session = super().create(*args, **kwargs)
+
+        # # keeps track of the order questions are added in
+        # position = 0
+
+        # # iterate over the session's template rules and pick random questions
+        # # for each topic according to the rules
+        # for rule in session.training_template.trainingtemplaterule_set.all():
+        #     # pass through each level twice: this is needed in case a level can't satisfy
+        #     # the requirement and neither can any subsequent level - after looping through
+        #     # the levels, each previously visited level has a second chance to fill in the
+        #     # debt from the previously visited level(s)
+        #     levels_range = get_levels_range(rule.difficulty_profile, rounds=2)
+
+        #     remainder_last_level = 0
+        #     second_round = False
+        #     for level in levels_range:
+        #         level = level % (AbstractItem.VERY_HARD + 1)
+
+        #         # the amount of questions needed for this level is the value in the field
+        #         # `amount_<level_name>` plus the difference between the requested amount for
+        #         # the previous level and the amount that was actually able to be supplied
+        #         amount = (
+        #             0
+        #             if second_round
+        #             else getattr(
+        #                 rule, f"amount_{AbstractItem.get_difficulty_level_name(level)}"
+        #             )
+        #         )
+        #         amount += remainder_last_level
+
+        #         # get random questions for given topic and difficulty level
+        #         questions = (
+        #             session.course.questions.filter(
+        #                 topic=rule.topic,
+        #                 difficulty=level,
+        #             )
+        #             .exclude(pk__in=session.questions.all())
+        #             .order_by("?")[:amount]
+        #         )
+
+        #         for question in questions:
+        #             session.questions.add(
+        #                 question, through_defaults={"position": position}
+        #             )
+        #             position += 1
+
+        #         remainder_last_level = amount - questions.count()
+
+        #         if level == get_last_level_checked(rule.difficulty_profile):
+        #             if remainder_last_level == 0:
+        #                 # we iterated over all the levels once and there aren't any
+        #                 # questions left to add - we're done
+        #                 break
+        #             else:
+        #                 # there are leftover questions to be added: go back to the
+        #                 # first level and try to fill the gap
+        #                 second_round = True
+        # return session
 
 
 class TrainingTemplateRuleManager(models.Manager):
