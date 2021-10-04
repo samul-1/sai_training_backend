@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -7,11 +8,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from training import texts
+from training import difficulty_profiles, texts
 from training.filters import (  # EnrolledOrAllowedCoursesOnly,
     StudentOrAllowedCoursesOnly,
     TeacherOrPersonalTrainingSessionsOnly,
 )
+from training.logic import get_items
 from training.models import ProgrammingExercise, TrainingTemplate
 from training.pagination import CourseItemPagination
 from training.permissions import (
@@ -292,6 +294,26 @@ class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
             pass
 
         return queryset
+
+    @action(detail=False, methods=["get"])
+    def get_matching_items(self, request, **kwargs):
+        try:
+            difficulty_profile = request.query_params["difficulty_profile"]
+            if difficulty_profile not in difficulty_profiles.profiles:
+                raise KeyError
+            topic_id = self.kwargs["topic_pk"]
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+            course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
+            topic = get_object_or_404(Course.topics.all(), pk=topic_id)
+            exercises = get_items(
+                ProgrammingExercise,
+                topic,
+                {},
+                difficulty_profiles.profiles[difficulty_profile],
+                [],  # exclude exercises for which user has already submitted solution(s)
+            )
 
     def perform_create(self, serializer):
         topic_pk = self.kwargs.pop("topic_pk", None)

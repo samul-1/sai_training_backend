@@ -1,3 +1,6 @@
+import math as m
+
+
 def get_items(model, topic, amounts, difficulty_profile, exclude_queryset):
     from .difficulty_profiles import get_last_level_checked, get_levels_range
     from .models import AbstractItem
@@ -31,6 +34,7 @@ def get_items(model, topic, amounts, difficulty_profile, exclude_queryset):
                 difficulty=level,
             )
             .exclude(pk__in=[i.id for i in ret])
+            .exclude(pk__in=exclude_queryset)
             .order_by("?")[:amount]
         )
         ret.extend(questions)
@@ -46,4 +50,44 @@ def get_items(model, topic, amounts, difficulty_profile, exclude_queryset):
                 # there are leftover questions to be added: go back to the
                 # first level and try to fill the gap
                 second_round = True
+    return ret
+
+
+def get_concrete_difficulty_profile_amounts(difficulty_profile, total_amount):
+    from .difficulty_profiles import get_levels_range
+    from .models import AbstractItem
+
+    ret = {}
+
+    levels_range = get_levels_range(difficulty_profile)
+
+    actual_total = 0
+    for level in levels_range:
+        try:
+            actual_amount = m.floor(total_amount * difficulty_profile[level])
+            actual_total += actual_amount
+
+            ret[
+                f"amount_{AbstractItem.get_difficulty_level_name(level)}"
+            ] = actual_amount
+
+        except KeyError:
+            pass
+
+    # this happens if rounding down percentages caused a lower total than the
+    # requested one: distribute the remainder evenly among fields
+    if actual_total < total_amount:
+        difference = total_amount - actual_total
+
+        while difference > 0:
+            levels_range = get_levels_range(difficulty_profile)
+            for level in levels_range:
+                target_field = f"amount_{AbstractItem.get_difficulty_level_name(level)}"
+                ret[target_field] = ret[target_field] + 1
+                difference -= 1
+                if difference == 0:
+                    break
+
+    print("RET")
+    print(ret)
     return ret
