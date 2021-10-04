@@ -226,10 +226,10 @@ class SubmissionSerializer(serializers.ModelSerializer):
         model = ExerciseSubmission
         fields = ["id", "code", "outcomes", "error"]
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        print("GETTING QS...")
-        return queryset.filter(user=self.context["request"].user)
+    # def get_queryset(self):
+    #     queryset = super().get_queryset()
+    #     print("GETTING QS...")
+    #     return queryset.filter(user=self.context["request"].user)
 
 
 class ExerciseTestCaseSerializer(serializers.ModelSerializer):
@@ -260,7 +260,12 @@ class ProgrammingExerciseSerializer(TeachersOnlyFieldsModelSerializer):
         if not self.context["request"].user.is_teacher:
             self.fields["text"] = serializers.CharField(source="rendered_text")
 
-            self.fields["submissions"] = SubmissionSerializer(many=True)
+            self.fields["submissions"] = serializers.SerializerMethodField()
+
+    def get_submissions(self, obj):
+        qs = obj.submissions.filter(user=self.context["request"].user)
+        serializer = SubmissionSerializer(instance=qs, many=True)
+        return serializer.data
 
 
 class TrainingSessionSerializer(ReadOnlyModelSerializer):

@@ -6,6 +6,7 @@ from django.utils import timezone
 from users.models import User
 
 import training.signals
+from training.managers import ProgrammingExerciseManager
 from training.node.utils import run_code_in_vm
 
 from .managers import TrainingSessionManager, TrainingTemplateRuleManager
@@ -311,6 +312,8 @@ class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
     minimum_passing_testcases = models.PositiveSmallIntegerField(default=1)
     solution = models.TextField(blank=True)
     rendered_solution = models.TextField(blank=True)
+
+    objects = ProgrammingExerciseManager()
 
     renderable_tex_fields = [
         ("text", "rendered_text"),

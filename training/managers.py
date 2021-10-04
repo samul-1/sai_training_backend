@@ -2,6 +2,7 @@ import math as m
 
 from django.apps import apps
 from django.db import models
+from django.db.models import Count, Exists, OuterRef, Q
 
 from training.logic import get_concrete_difficulty_profile_amounts
 
@@ -52,3 +53,21 @@ class TrainingTemplateRuleManager(models.Manager):
         # TrainingTemplateRule.objects.filter(pk=rule.pk).update(**concrete_amounts)
 
         return rule
+
+
+class ProgrammingExerciseQuerySet(models.QuerySet):
+    def seen_by(self, user):
+        exists_submission = apps.get_model(
+            "training.ExerciseSubmission"
+        ).objects.filter(user=user, exercise=OuterRef("pk"))
+        return self.annotate(
+            submission_exists=Exists(exists_submission),
+        ).filter(submission_exists=True)
+
+
+class ProgrammingExerciseManager(models.Manager):
+    def get_queryset(self):
+        return ProgrammingExerciseQuerySet(self.model, using=self._db)
+
+    def seen_by(self, user):
+        return self.get_queryset().seen_by(user)

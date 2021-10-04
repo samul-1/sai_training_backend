@@ -14,7 +14,7 @@ from training.filters import (  # EnrolledOrAllowedCoursesOnly,
     TeacherOrPersonalTrainingSessionsOnly,
 )
 from training.logic import get_concrete_difficulty_profile_amounts, get_items
-from training.models import ProgrammingExercise, TrainingTemplate
+from training.models import ExerciseSubmission, ProgrammingExercise, TrainingTemplate
 from training.pagination import CourseItemPagination
 from training.permissions import (
     AllowedTeacherOrEnrolledOnly,
@@ -25,6 +25,7 @@ from training.permissions import (
 )
 from training.serializers import (
     ProgrammingExerciseSerializer,
+    SubmissionSerializer,
     TrainingTemplateSerializer,
 )
 
@@ -300,6 +301,35 @@ class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsAuthenticated, AllowedTeacherOrEnrolledOnly],
+    )
+    def submit(self, request, **kwargs):
+        try:
+            code = request.data["code"]
+            submission = ExerciseSubmission.objects.create(
+                exercise=self.get_object(), user=request.user, code=code
+            )
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = SubmissionSerializer(instance=submission)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def history(self, request, **kwargs):
+        exercises = self.get_queryset().seen_by(request.user)
+
+        serializer = ProgrammingExerciseSerializer(
+            data=exercises,
+            many=True,
+            context=self._get_serializer_context(request),
+        )
+        serializer.is_valid()
+        return Response(serializer.data)
+
     @action(detail=False, methods=["get"])
     def bulk_get(self, request, **kwargs):
         try:
@@ -335,9 +365,8 @@ class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
-        print(course)
         topic = get_object_or_404(course.topics.all(), pk=topic_id)
-        print(topic)
+
         exercises = get_items(
             ProgrammingExercise,
             topic,
@@ -347,9 +376,6 @@ class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
             difficulty_profiles.profiles[difficulty_profile],
             [],  # exclude exercises for which user has already submitted solution(s)
         )
-
-        print("EXERCISES")
-        print(exercises)
 
         serializer = ProgrammingExerciseSerializer(
             data=exercises,
@@ -379,7 +405,6 @@ class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         print(request.data)
         many = isinstance(request.data, list)
-        print(many)
         serializer = self.get_serializer(data=request.data, many=many)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
