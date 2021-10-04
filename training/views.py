@@ -13,7 +13,7 @@ from training.filters import (  # EnrolledOrAllowedCoursesOnly,
     StudentOrAllowedCoursesOnly,
     TeacherOrPersonalTrainingSessionsOnly,
 )
-from training.logic import get_items
+from training.logic import get_concrete_difficulty_profile_amounts, get_items
 from training.models import ProgrammingExercise, TrainingTemplate
 from training.pagination import CourseItemPagination
 from training.permissions import (
@@ -282,6 +282,11 @@ class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
     filterset_fields = ["difficulty"]
     pagination_class = CourseItemPagination
 
+    def _get_serializer_context(self, request):
+        return {
+            "request": request,
+        }
+
     def get_queryset(self):
         queryset = super().get_queryset()
         try:
@@ -299,21 +304,39 @@ class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
     def get_matching_items(self, request, **kwargs):
         try:
             difficulty_profile = request.query_params["difficulty_profile"]
+            amount = int(request.query_params["amount"])
             if difficulty_profile not in difficulty_profiles.profiles:
+                print("WRONG DIFFICULTY PROFILE")
+                print(difficulty_profile)
                 raise KeyError
             topic_id = self.kwargs["topic_pk"]
-        except KeyError:
+        except (KeyError, ValueError):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-            course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
-            topic = get_object_or_404(Course.topics.all(), pk=topic_id)
-            exercises = get_items(
-                ProgrammingExercise,
-                topic,
-                {},
-                difficulty_profiles.profiles[difficulty_profile],
-                [],  # exclude exercises for which user has already submitted solution(s)
-            )
+        course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
+        print(course)
+        topic = get_object_or_404(course.topics.all(), pk=topic_id)
+        print(topic)
+        exercises = get_items(
+            ProgrammingExercise,
+            topic,
+            get_concrete_difficulty_profile_amounts(
+                difficulty_profiles.profiles[difficulty_profile], amount
+            ),
+            difficulty_profiles.profiles[difficulty_profile],
+            [],  # exclude exercises for which user has already submitted solution(s)
+        )
+
+        print("EXERCISES")
+        print(exercises)
+
+        serializer = ProgrammingExerciseSerializer(
+            data=exercises,
+            many=True,
+            context=self._get_serializer_context(request),
+        )
+        serializer.is_valid()
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         topic_pk = self.kwargs.pop("topic_pk", None)

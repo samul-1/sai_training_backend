@@ -17,18 +17,19 @@ def get_items(model, topic, amounts, difficulty_profile, exclude_queryset):
     second_round = False
     for level in levels_range:
         level = level % (AbstractItem.VERY_HARD + 1)
+        print(level)
 
-        # the amount of questions needed for this level is the value in the field
+        # the amount of items needed for this level is the value in the field
         # `amount_<level_name>` plus the difference between the requested amount for
         # the previous level and the amount that was actually able to be supplied
 
         amount = (
-            amounts.get(AbstractItem.get_difficulty_level_name(level))
+            amounts.get(("amount_" + AbstractItem.get_difficulty_level_name(level)), 0)
             + remainder_last_level
         )
 
-        # get random questions for given topic and difficulty level
-        questions = (
+        # get random items for given topic and difficulty level
+        items = (
             model.objects.filter(
                 topic=topic,
                 difficulty=level,
@@ -37,19 +38,21 @@ def get_items(model, topic, amounts, difficulty_profile, exclude_queryset):
             .exclude(pk__in=exclude_queryset)
             .order_by("?")[:amount]
         )
-        ret.extend(questions)
 
-        remainder_last_level = amount - questions.count()
+        ret.extend(items)
+
+        remainder_last_level = amount - items.count()
 
         if level == get_last_level_checked(difficulty_profile):
             if remainder_last_level == 0:
                 # we iterated over all the levels once and there aren't any
-                # questions left to add - we're done
+                # items left to add - we're done
                 break
             else:
-                # there are leftover questions to be added: go back to the
+                # there are leftover items to be added: go back to the
                 # first level and try to fill the gap
                 second_round = True
+
     return ret
 
 
@@ -88,6 +91,4 @@ def get_concrete_difficulty_profile_amounts(difficulty_profile, total_amount):
                 if difference == 0:
                     break
 
-    print("RET")
-    print(ret)
     return ret
