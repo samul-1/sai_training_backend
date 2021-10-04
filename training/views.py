@@ -301,13 +301,34 @@ class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
         return queryset
 
     @action(detail=False, methods=["get"])
+    def bulk_get(self, request, **kwargs):
+        try:
+            ids = request.query_params["ids"]
+            id_list = ids.split(",")
+        except KeyError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        exercises = []
+        course = get_object_or_404(Course, pk=self.kwargs["course_pk"])
+
+        for pk in id_list:
+            exercise = get_object_or_404(course.programmingexercises.all(), pk=pk)
+            exercises.append(exercise)
+
+        serializer = ProgrammingExerciseSerializer(
+            data=exercises,
+            many=True,
+            context=self._get_serializer_context(request),
+        )
+        serializer.is_valid()
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
     def get_matching_items(self, request, **kwargs):
         try:
             difficulty_profile = request.query_params["difficulty_profile"]
             amount = int(request.query_params["amount"])
             if difficulty_profile not in difficulty_profiles.profiles:
-                print("WRONG DIFFICULTY PROFILE")
-                print(difficulty_profile)
                 raise KeyError
             topic_id = self.kwargs["topic_pk"]
         except (KeyError, ValueError):

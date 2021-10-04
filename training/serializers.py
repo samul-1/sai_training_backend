@@ -228,6 +228,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        print("GETTING QS...")
         return queryset.filter(user=self.context["request"].user)
 
 
