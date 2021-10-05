@@ -10,6 +10,8 @@ def render_tex_fields(sender, instance, created, **kwargs):
 
     re_render_fields = {}
     for (source, target) in sender.renderable_tex_fields:
+        print("CREATED")
+        print(created)
         value_changed = created or (
             getattr(instance, source) != getattr(instance, f"_old_{source}", "")
         )

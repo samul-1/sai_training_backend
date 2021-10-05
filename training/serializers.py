@@ -245,7 +245,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ExerciseSubmission
-        fields = ["id", "code", "outcomes", "error"]
+        fields = ["id", "code", "outcomes", "error", "timestamp"]
 
 
 class ExerciseTestCaseSerializer(serializers.ModelSerializer):

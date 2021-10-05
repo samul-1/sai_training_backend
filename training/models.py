@@ -364,6 +364,7 @@ class ExerciseSubmission(models.Model):
         ExerciseTestCase, through="TestCaseOutcomeThroughModel"
     )
     error = models.TextField(blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["pk"]
