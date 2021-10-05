@@ -29,7 +29,10 @@ class ReadOnlyModelSerializer(serializers.ModelSerializer):
 
 class NestedCreateUpdateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
+        # assumes the validated_data dict contains a field that is named with
+        # the plural name of the child model
         children_data = validated_data.pop(self.child_model._meta.verbose_name_plural)
+
         instance = self.Meta.model.objects.create(**validated_data)
 
         # the kwarg used to reference the parent instance has the same name as the parent class
@@ -42,22 +45,21 @@ class NestedCreateUpdateSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-        # get data about choices
+        # assumes the validated_data dict contains a field that is named with
+        # the plural name of the child model
         children_data = validated_data.pop(self.child_model._meta.verbose_name_plural)
 
         # update main instance
         instance = super().update(instance, validated_data)
 
-        print(self.child_model._meta.verbose_name_plural)
-
         children = getattr(instance, self.child_model._meta.verbose_name_plural).all()
 
         # update or create each child
         for child_data in children_data:
-            if child_data.get("id") is not None:
+            if child_data.get("id") is not None:  # an existing child is being updated
                 child = self.child_model.objects.get(pk=child_data["id"])
                 save_id = child_data.pop("id")
-            else:
+            else:  # a new child needs to be created
                 # the kwarg used to reference the parent instance has the same name as the parent class
                 parent_kwarg = {f"{self.Meta.model._meta.verbose_name}": instance}
                 child = self.child_model.objects.create(**parent_kwarg)
@@ -69,10 +71,11 @@ class NestedCreateUpdateSerializer(serializers.ModelSerializer):
             serializer.is_valid(raise_exception=True)
             serializer.update(instance=child, validated_data=child_data)
 
-            # remove choice from the list of those still to process
+            # remove child from the list of those still to process
             children = children.exclude(pk=save_id)
 
-        # remove any choices for which data wasn't sent (i.e. user deleted them)
+        # children that are still in the queryset at this point were
+        # deleted in the frontend because no data was sent for them
         for child in children:
             child.delete()
 
@@ -244,11 +247,6 @@ class SubmissionSerializer(serializers.ModelSerializer):
         model = ExerciseSubmission
         fields = ["id", "code", "outcomes", "error"]
 
-    # def get_queryset(self):
-    #     queryset = super().get_queryset()
-    #     print("GETTING QS...")
-    #     return queryset.filter(user=self.context["request"].user)
-
 
 class ExerciseTestCaseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -267,7 +265,14 @@ class ProgrammingExerciseSerializer(
 
     class Meta:
         model = ProgrammingExercise
-        fields = ["id", "text", "imported_from_exam", "topic", "testcases"]
+        fields = [
+            "id",
+            "text",
+            "imported_from_exam",
+            "topic",
+            "testcases",
+            "initial_code",
+        ]
         read_only_fields = ["imported_from_exam"]
         teachers_only_fields = ["solution", "difficulty"]
 
