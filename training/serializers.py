@@ -164,11 +164,19 @@ class PostSessionChoiceSerializer(ReadOnlyModelSerializer):
 class PostSessionQuestionSerializer(ReadOnlyModelSerializer):
     text = serializers.CharField(source="question.rendered_text")
     solution = serializers.CharField(source="question.rendered_solution")
+    is_open_ended = serializers.BooleanField(source="question.is_open_ended")
     id = serializers.IntegerField(source="question.id")
 
     class Meta:
         model = QuestionTrainingSessionThroughModel
-        fields = ["id", "text", "solution", "selected_choice"]
+        fields = [
+            "id",
+            "text",
+            "solution",
+            "selected_choice",
+            "is_open_ended",
+            "open_answer_text",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -210,7 +218,7 @@ class QuestionSerializer(
 
     class Meta:
         model = Question
-        fields = ["id", "text", "imported_from_exam", "topic"]
+        fields = ["id", "text", "imported_from_exam", "topic", "is_open_ended"]
         read_only_fields = ["imported_from_exam"]
         teachers_only_fields = ["solution", "difficulty"]
 

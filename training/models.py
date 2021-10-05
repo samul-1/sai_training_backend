@@ -276,6 +276,7 @@ class Question(TrackRenderableFieldsMixin, AbstractItem):
     rendered_text = models.TextField(blank=True)
     solution = models.TextField(blank=True)
     rendered_solution = models.TextField(blank=True)
+    is_open_ended = models.BooleanField(default=False)
 
     renderable_tex_fields = [
         ("text", "rendered_text"),
@@ -306,6 +307,14 @@ class Choice(TrackRenderableFieldsMixin):
 
     def __str__(self):
         return f"{self.text[:100]} ({str(self.question)})"
+
+    def clean(self, *args, **kwargs):
+        if self.question.is_opended:
+            raise ValidationError("Open-ended questions can't have choices")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 
 class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
@@ -517,12 +526,13 @@ class QuestionTrainingSessionThroughModel(models.Model):
         TrainingSession,
         on_delete=models.CASCADE,
     )
-    selected_choice = models.ForeignKey(
+    selected_choice = models.ForeignKey(  # for multiple-choice questions
         Choice,
         blank=True,
         null=True,
         on_delete=models.CASCADE,
     )
+    open_answer_text = models.TextField(blank=True)  # for open-ended questions
 
     class Meta:
         ordering = ["training_session_id", "position"]
@@ -533,6 +543,12 @@ class QuestionTrainingSessionThroughModel(models.Model):
             and self.selected_choice not in self.question.choices.all()
         ):
             raise ValidationError("Selected choice isn't an option for this question.")
+
+        if len(self.open_answer_text) > 0 and not self.question.is_open_ended:
+            raise ValidationError("Can't give open answers to multiple-choice question")
+
+        if self.selected_choice is not None and self.question.is_open_ended:
+            raise ValidationError("Can't select a choice for an open-ended question")
 
     def save(self, *args, **kwargs):
         self.full_clean()
