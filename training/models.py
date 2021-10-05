@@ -33,6 +33,8 @@ class Course(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True)
 
+    uses_programming_exercises = models.BooleanField(default=False)
+
     class Meta:
         ordering = ["pk"]
 
@@ -292,7 +294,7 @@ class Choice(TrackRenderableFieldsMixin):
     )
     text = models.TextField()
     rendered_text = models.TextField(blank=True)
-    correct = models.BooleanField()
+    correct = models.BooleanField(default=False)
 
     renderable_tex_fields = [
         ("text", "rendered_text"),
@@ -300,6 +302,7 @@ class Choice(TrackRenderableFieldsMixin):
 
     class Meta:
         ordering = ["pk"]
+        verbose_name_plural = "choices"
 
     def __str__(self):
         return f"{self.text[:100]} ({str(self.question)})"
@@ -322,6 +325,7 @@ class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
 
     class Meta:
         ordering = ["pk"]
+        verbose_name = "exercise"
 
     def __str__(self):
         return self.text[:100]
@@ -338,6 +342,7 @@ class ExerciseTestCase(models.Model):
 
     class Meta:
         ordering = ["pk"]
+        verbose_name_plural = "testcases"
 
     def __str__(self):
         return f"{str(self.exercise)} - {self.code}"
@@ -362,6 +367,9 @@ class ExerciseSubmission(models.Model):
 
     class Meta:
         ordering = ["pk"]
+
+    def __str__(self):
+        return f"{str(self.exercise)} - {str(self.user)} - {str(self.code)}"
 
     def save(self, *args, **kwargs):
         creating = self.pk is None

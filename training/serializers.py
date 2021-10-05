@@ -27,6 +27,58 @@ class ReadOnlyModelSerializer(serializers.ModelSerializer):
         return fields
 
 
+class NestedCreateUpdateSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        children_data = validated_data.pop(self.child_model._meta.verbose_name_plural)
+        instance = self.Meta.model.objects.create(**validated_data)
+
+        # the kwarg used to reference the parent instance has the same name as the parent class
+        parent_kwarg = {f"{self.Meta.model._meta.verbose_name}": instance}
+
+        # create a related object for each child
+        for child in children_data:
+            self.child_model.objects.create(**parent_kwarg, **child)
+
+        return instance
+
+    def update(self, instance, validated_data):
+        # get data about choices
+        children_data = validated_data.pop(self.child_model._meta.verbose_name_plural)
+
+        # update main instance
+        instance = super().update(instance, validated_data)
+
+        print(self.child_model._meta.verbose_name_plural)
+
+        children = getattr(instance, self.child_model._meta.verbose_name_plural).all()
+
+        # update or create each child
+        for child_data in children_data:
+            if child_data.get("id") is not None:
+                child = self.child_model.objects.get(pk=child_data["id"])
+                save_id = child_data.pop("id")
+            else:
+                # the kwarg used to reference the parent instance has the same name as the parent class
+                parent_kwarg = {f"{self.Meta.model._meta.verbose_name}": instance}
+                child = self.child_model.objects.create(**parent_kwarg)
+                save_id = child.pk
+
+            serializer = self.child_serializer(
+                child, data=child_data, context=self.context
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.update(instance=child, validated_data=child_data)
+
+            # remove choice from the list of those still to process
+            children = children.exclude(pk=save_id)
+
+        # remove any choices for which data wasn't sent (i.e. user deleted them)
+        for child in children:
+            child.delete()
+
+        return instance
+
+
 class TeachersOnlyFieldsModelSerializer(serializers.ModelSerializer):
     # Used to only show certain fields of the serialized model to teachers. At
     # initialization, checks if the requesting user is a teacher: if it is, the
@@ -46,7 +98,14 @@ class CourseSerializer(TeachersOnlyFieldsModelSerializer):
 
     class Meta:
         model = Course
-        fields = ["id", "name", "description", "creator", "number_enrolled"]
+        fields = [
+            "id",
+            "name",
+            "description",
+            "creator",
+            "number_enrolled",
+            "uses_programming_exercises",
+        ]
         teachers_only_fields = ["allowed_teachers", "creator_id"]
 
     def __init__(self, *args, **kwargs):
@@ -137,9 +196,14 @@ class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
         )
 
 
-class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
+class QuestionSerializer(
+    TeachersOnlyFieldsModelSerializer, NestedCreateUpdateSerializer
+):
     # send difficulty as string rather than number for easier manipulation in frontend
     difficulty = serializers.CharField()
+
+    child_model = Choice
+    child_serializer = ChoiceSerializer
 
     class Meta:
         model = Question
@@ -158,52 +222,6 @@ class QuestionSerializer(TeachersOnlyFieldsModelSerializer):
 
         if not self.context["request"].user.is_teacher:
             self.fields["text"] = serializers.CharField(source="rendered_text")
-
-    def create(self, validated_data):
-        choices_data = validated_data.pop("choices")
-        question = Question.objects.create(**validated_data)
-
-        # create objects for each choice
-        for choice in choices_data:
-            Choice.objects.create(question=question, **choice)
-
-        return question
-
-    def update(self, instance, validated_data):
-        # get data about choices
-        choices_data = validated_data.pop("choices")
-
-        # update question instance
-        instance = super().update(instance, validated_data)
-
-        choices = instance.choices.all()
-
-        # update each choice
-        for choice_data in choices_data:
-            if choice_data.get("id") is not None:
-                choice = Choice.objects.get(pk=choice_data["id"])
-                save_id = choice_data.pop("id")
-            else:
-                choice = Choice.objects.create(
-                    question=instance,
-                    correct=True,  # dummy value for db constraint, will be overwritten by whatever is in `choice_data`
-                )
-                save_id = choice.pk
-
-            serializer = ChoiceSerializer(
-                choice, data=choice_data, context=self.context
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.update(instance=choice, validated_data=choice_data)
-
-            # remove choice from the list of those still to process
-            choices = choices.exclude(pk=save_id)
-
-        # remove any choices for which data wasn't sent (i.e. user deleted them)
-        for choice in choices:
-            choice.delete()
-
-        return instance
 
 
 class TestCaseOutcomeSerializer(serializers.ModelSerializer):
@@ -238,9 +256,14 @@ class ExerciseTestCaseSerializer(serializers.ModelSerializer):
         fields = ["code"]
 
 
-class ProgrammingExerciseSerializer(TeachersOnlyFieldsModelSerializer):
+class ProgrammingExerciseSerializer(
+    TeachersOnlyFieldsModelSerializer, NestedCreateUpdateSerializer
+):
     # send difficulty as string rather than number for easier manipulation in frontend
     difficulty = serializers.CharField()
+
+    child_model = ExerciseTestCase
+    child_serializer = ExerciseTestCaseSerializer
 
     class Meta:
         model = ProgrammingExercise
