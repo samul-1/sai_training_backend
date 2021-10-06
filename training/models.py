@@ -309,7 +309,7 @@ class Choice(TrackRenderableFieldsMixin):
         return f"{self.text[:100]} ({str(self.question)})"
 
     def clean(self, *args, **kwargs):
-        if self.question.is_opended:
+        if self.question.is_open_ended:
             raise ValidationError("Open-ended questions can't have choices")
 
     def save(self, *args, **kwargs):
@@ -487,9 +487,10 @@ class TrainingSession(models.Model):
         if not self.in_progress:
             raise ValidationError("Session is over.")
 
-        # loops through the assigned questions to the session and saves the
-        # selected choice for each question
-        for question_id, choice_id in answers.items():
+        # loops through the assigned questions to the session and saves the selected choice for each
+        # question - the variable `answer` will be the id of a Choice for multiple-choice questions,
+        # or the user-written text of the answer for open-ended questions
+        for question_id, answer in answers.items():
             # get question
             try:
                 through_row = QuestionTrainingSessionThroughModel.objects.get(
@@ -500,13 +501,16 @@ class TrainingSession(models.Model):
                     f"Question {question_id} not in session {self.pk}"
                 )
 
-            # set selected choice
-            if choice_id is not None:
-                try:
-                    through_row.selected_choice = Choice.objects.get(pk=choice_id)
+            if answer is not None:
+                if through_row.question.is_open_ended:
+                    through_row.open_answer_text = answer
                     through_row.save()
-                except Choice.DoesNotExist:
-                    raise ValidationError(f"Choice {choice_id} doesn't exist")
+                else:
+                    try:
+                        through_row.selected_choice = Choice.objects.get(pk=answer)
+                        through_row.save()
+                    except Choice.DoesNotExist:
+                        raise ValidationError(f"Choice {answer} doesn't exist")
 
         now = timezone.localtime(timezone.now())
         self.end_timestamp = now
