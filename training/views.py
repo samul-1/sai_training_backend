@@ -110,7 +110,7 @@ class TrainingSessionViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             session.turn_in(request.data["answers"])
         except (KeyError, ValidationError):
-            return Response(stats=status.HTTP_400_BAD_REQUEST)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         serializer = TrainingSessionOutcomeSerializer(
             instance=session, context=self._get_serializer_context(request)
