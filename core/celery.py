@@ -28,29 +28,23 @@ logger = logging.getLogger(__name__)
 def render_tex_task(self, model, pk, fields):
     from training.tex import tex_to_svg
 
-    print("fields")
-    print(fields)
     re_rendered_fields = {}
     for target, source in fields.items():
-        print("target")
-        print(target)
-        print("source")
-        print(source)
         re_rendered_fields[target] = tex_to_svg(source)
 
-    print("re_rendered fields")
-    print(re_rendered_fields)
-
-    print("INSTANCE TO UPDATE")
-    print(apps.get_model(app_label="training", model_name=model).objects.filter(pk=pk))
+    # for some reason, sometimes the object to be updated isn't immediately
+    # found using `filter` with its pk (!), so `update` is called and its return
+    # value gets checked - if it's 1, the object was correctly updated, otherwise
+    # celery should retry to fetch it. it *is* in the database, as this is called
+    # post_save and explicitly passed the object's pk; it's just that sometimes the
+    # first query returns an empty queryset (no clue why), so retrying shortly after
+    # is necessary
     while True:
-        # use `update` to prevent calling `save` again and entering a loop
         if (
             apps.get_model(app_label="training", model_name=model)
             .objects.filter(pk=pk)
             .update(**re_rendered_fields)
-        ) == 1:
-            print("SUCCESS!")
+        ) == 1:  # object was correctly updated
             break
-        print("SLEEPING THEN TRYING AGAIN...")
+        # retry in a bit
         sleep(0.5)
