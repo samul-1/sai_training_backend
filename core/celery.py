@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from time import sleep
 
 from django.apps import apps
 
@@ -42,7 +43,14 @@ def render_tex_task(self, model, pk, fields):
 
     print("INSTANCE TO UPDATE")
     print(apps.get_model(app_label="training", model_name=model).objects.filter(pk=pk))
-    # use `update` to prevent calling `save` again and entering a loop
-    apps.get_model(app_label="training", model_name=model).objects.filter(pk=pk).update(
-        **re_rendered_fields
-    )
+    while True:
+        # use `update` to prevent calling `save` again and entering a loop
+        if (
+            apps.get_model(app_label="training", model_name=model)
+            .objects.filter(pk=pk)
+            .update(**re_rendered_fields)
+        ) == 1:
+            print("SUCCESS!")
+            break
+        print("SLEEPING THEN TRYING AGAIN...")
+        sleep(0.5)
