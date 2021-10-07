@@ -62,7 +62,7 @@ class NestedCreateUpdateSerializer(serializers.ModelSerializer):
             else:  # a new child needs to be created
                 # the kwarg used to reference the parent instance has the same name as the parent class
                 parent_kwarg = {f"{self.Meta.model._meta.verbose_name}": instance}
-                child = self.child_model.objects.create(**parent_kwarg)
+                child = self.child_model.objects.create(**child_data, **parent_kwarg)
                 save_id = child.pk
 
             serializer = self.child_serializer(
