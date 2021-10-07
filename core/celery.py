@@ -40,6 +40,8 @@ def render_tex_task(self, model, pk, fields):
     print("re_rendered fields")
     print(re_rendered_fields)
 
+    print("INSTANCE TO UPDATE")
+    print(apps.get_model(app_label="training", model_name=model).objects.filter(pk=pk))
     # use `update` to prevent calling `save` again and entering a loop
     apps.get_model(app_label="training", model_name=model).objects.filter(pk=pk).update(
         **re_rendered_fields
