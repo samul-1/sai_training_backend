@@ -8,28 +8,19 @@ class StudentOrAllowedCoursesOnly(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         if not request.user.is_teacher:
             return queryset
+
+        print("QS----")
+        print(
+            queryset.filter(
+                Q(creator=request.user) | Q(allowed_teachers__in=[request.user])
+            )
+            .distinct()
+            .query
+        )
+        print(queryset)
         return queryset.filter(
             Q(creator=request.user) | Q(allowed_teachers__in=[request.user])
-        )
-
-
-class EnrolledOrAllowedCoursesOnly(filters.BaseFilterBackend):
-    def filter_queryset(self, request, queryset, view):
-        if queryset.model is Course:
-            if request.user.is_teacher:
-                return queryset.filter(
-                    Q(creator=request.user) | Q(allowed_teachers__in=[request.user])
-                )
-            else:
-                return queryset.filter(enrolled_students__in=[request.user])
-
-        if request.user.is_teacher:
-            return queryset.filter(
-                Q(course__creator=request.user)
-                | Q(course__allowed_teachers__in=[request.user])
-            )
-
-        return queryset.filter(course__enrolled_students__in=[request.user])
+        ).distinct()  # ! keep an eye on this
 
 
 class TeacherOrPersonalTrainingSessionsOnly(filters.BaseFilterBackend):
