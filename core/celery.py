@@ -27,9 +27,18 @@ logger = logging.getLogger(__name__)
 def render_tex_task(self, model, pk, fields):
     from training.tex import tex_to_svg
 
+    print("fields")
+    print(fields)
     re_rendered_fields = {}
     for target, source in fields.items():
+        print("target")
+        print(target)
+        print("source")
+        print(source)
         re_rendered_fields[target] = tex_to_svg(source)
+
+    print("re_rendered fields")
+    print(re_rendered_fields)
 
     # use `update` to prevent calling `save` again and entering a loop
     apps.get_model(app_label="training", model_name=model).objects.filter(pk=pk).update(
