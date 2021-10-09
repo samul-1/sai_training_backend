@@ -407,7 +407,6 @@ class ExerciseSubmission(models.Model):
                             "details": testcase_outcome.get("error", ""),
                         },
                     )
-                print(outcomes)
 
 
 class TestCaseOutcomeThroughModel(models.Model):
@@ -449,7 +448,7 @@ class TrainingSession(models.Model):
     objects = TrainingSessionManager()
 
     class Meta:
-        ordering = ["pk"]
+        ordering = ["course_id", "-begin_timestamp"]
 
     @property
     def score(self):

@@ -438,7 +438,6 @@ class TrainingSessionCreationTestCase(TestCase):
                 difficulty=(i % (AbstractItem.VERY_HARD + 1)),
                 text=self.random_string(),
             )
-            print(q.topic)
 
         # there are now 5 questions for both topics, and one for each difficulty level
         session = TrainingSession.objects.create(

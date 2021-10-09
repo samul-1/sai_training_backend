@@ -356,7 +356,6 @@ class TrainingTemplateSerializer(serializers.ModelSerializer):
 
         for rule_data in rules_data:
             topic_data = rule_data.pop("topic")
-            print(topic_data)
             topic = Topic.objects.get(name=topic_data["name"], course=instance.course)
             rule = TrainingTemplateRule.objects.create(
                 training_template=instance, topic=topic, **rule_data

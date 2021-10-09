@@ -257,9 +257,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        print(request.data)
         many = isinstance(request.data, list)
-        print(many)
         serializer = self.get_serializer(data=request.data, many=many)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -403,7 +401,6 @@ class ProgrammingExerciseViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
-        print(request.data)
         many = isinstance(request.data, list)
         serializer = self.get_serializer(data=request.data, many=many)
         serializer.is_valid(raise_exception=True)

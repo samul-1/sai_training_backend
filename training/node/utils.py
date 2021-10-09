@@ -21,6 +21,4 @@ def run_code_in_vm(code, testcases_json):
         ]
     )
 
-    print(res)
-
     return json.loads(res)

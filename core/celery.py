@@ -42,7 +42,8 @@ def render_tex_task(self, model, pk, fields):
     # post_save and explicitly passed the object's pk; it's just that sometimes the
     # first query returns an empty queryset (no clue why), so retrying shortly after
     # is necessary
-    while True:
+    attempts = 0
+    while attempts < 5:
         # ! if you have problems again, try testing
         # ! `apps.get_model(...).filter(...)count()` against 0 instead of
         # ! the return value of `update`
@@ -55,5 +56,6 @@ def render_tex_task(self, model, pk, fields):
         # retry in a bit
         print("SLEEPING")
         sleep(randint(1, 5))
+        attempts += 1
 
     print("OUT")

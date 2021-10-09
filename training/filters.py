@@ -9,15 +9,6 @@ class StudentOrAllowedCoursesOnly(filters.BaseFilterBackend):
         if not request.user.is_teacher:
             return queryset
 
-        print("QS----")
-        print(
-            queryset.filter(
-                Q(creator=request.user) | Q(allowed_teachers__in=[request.user])
-            )
-            .distinct()
-            .query
-        )
-        print(queryset)
         return queryset.filter(
             Q(creator=request.user) | Q(allowed_teachers__in=[request.user])
         ).distinct()  # ! keep an eye on this

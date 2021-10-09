@@ -17,7 +17,6 @@ def get_items(model, topic, amounts, difficulty_profile, exclude_queryset):
     second_round = False
     for level in levels_range:
         level = level % (AbstractItem.VERY_HARD + 1)
-        print(level)
 
         # the amount of items needed for this level is the value in the field
         # `amount_<level_name>` plus the difference between the requested amount for
