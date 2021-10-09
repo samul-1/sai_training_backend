@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from random import randint
 from time import sleep
 
 from django.apps import apps
@@ -28,6 +29,8 @@ logger = logging.getLogger(__name__)
 def render_tex_task(self, model, pk, fields):
     from training.tex import tex_to_svg
 
+    print("RECEIVED")
+
     re_rendered_fields = {}
     for target, source in fields.items():
         re_rendered_fields[target] = tex_to_svg(source)
@@ -40,6 +43,9 @@ def render_tex_task(self, model, pk, fields):
     # first query returns an empty queryset (no clue why), so retrying shortly after
     # is necessary
     while True:
+        # ! if you have problems again, try testing
+        # ! `apps.get_model(...).filter(...)count()` against 0 instead of
+        # ! the return value of `update`
         if (
             apps.get_model(app_label="training", model_name=model)
             .objects.filter(pk=pk)
@@ -47,4 +53,7 @@ def render_tex_task(self, model, pk, fields):
         ) == 1:  # object was correctly updated
             break
         # retry in a bit
-        sleep(0.5)
+        print("SLEEPING")
+        sleep(randint(1, 5))
+
+    print("OUT")

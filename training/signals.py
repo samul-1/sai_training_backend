@@ -18,6 +18,7 @@ def render_tex_fields(sender, instance, created, **kwargs):
         if value_changed:
             re_render_fields[target] = getattr(instance, source)
 
+    print("SCHEDULING")
     render_tex_task.delay(
         model=sender.__name__, pk=instance.pk, fields=re_render_fields
     )
