@@ -450,6 +450,9 @@ class TrainingSession(models.Model):
     class Meta:
         ordering = ["course_id", "-begin_timestamp"]
 
+    def __str__(self):
+        return f"{self.trainee.full_name} - {str(self.course)}"
+
     @property
     def score(self):
         # returns the number of questions in the session for which a correct
