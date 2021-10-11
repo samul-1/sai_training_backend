@@ -293,11 +293,11 @@ class Question(TrackRenderableFieldsMixin, AbstractItem):
 
     class Meta:
         ordering = ["pk"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["course", "text"], name="same_course_question_text_unique"
-            )
-        ]
+        # constraints = [
+        #     models.UniqueConstraint(
+        #         fields=["course", "text"], name="same_course_question_text_unique"
+        #     )
+        # ]
 
 
 class Choice(TrackRenderableFieldsMixin):
@@ -348,11 +348,11 @@ class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
     class Meta:
         ordering = ["pk"]
         verbose_name = "exercise"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["course", "text"], name="same_course_%(class)s_text_unique"
-            )
-        ]
+        # constraints = [
+        #     models.UniqueConstraint(
+        #         fields=["course", "text"], name="same_course_%(class)s_text_unique"
+        #     )
+        # ]
 
 
 class ExerciseTestCase(models.Model):
