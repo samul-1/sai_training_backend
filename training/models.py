@@ -6,7 +6,7 @@ from django.utils import timezone
 from users.models import User
 
 import training.signals
-from training.managers import ProgrammingExerciseManager
+from training.managers import ProgrammingExerciseManager, TrainingTemplateManager
 from training.node.utils import run_code_in_vm
 
 from .managers import TrainingSessionManager, TrainingTemplateRuleManager
@@ -126,6 +126,8 @@ class TrainingTemplate(models.Model):
     )
     custom = models.BooleanField(default=False)
     rules = models.ManyToManyField(Topic, through="TrainingTemplateRule")
+
+    objects = TrainingTemplateManager()
 
     class Meta:
         ordering = ["pk"]

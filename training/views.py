@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from training import difficulty_profiles, texts
-from training.filters import (  # EnrolledOrAllowedCoursesOnly,
+from training.filters import (
+    OwnedOnlyTrainingTemplates,
     StudentOrAllowedCoursesOnly,
     TeacherOrPersonalTrainingSessionsOnly,
 )
@@ -156,11 +157,11 @@ class TrainingTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = TrainingTemplateSerializer
     queryset = TrainingTemplate.objects.all()
     permission_classes = [IsAuthenticated, AllowedTeacherOrEnrolledOnly]
-    # filter_backends = [EnrolledOrAllowedCoursesOnly]
+    filter_backends = [OwnedOnlyTrainingTemplates]
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.filter(course=self.kwargs["course_pk"], custom=False)
+        return queryset.filter(course=self.kwargs["course_pk"])
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):

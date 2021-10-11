@@ -65,6 +65,36 @@ class ProgrammingExerciseQuerySet(models.QuerySet):
         ).filter(submission_exists=True)
 
 
+class TrainingTemplatesQuerySet(models.QuerySet):
+    def recently_used_by(self, user, course_id):
+        recent_training_sessions_templates = (
+            apps.get_model("training.TrainingSession")
+            .objects.filter(
+                trainee=user,
+                course_id=course_id,
+                training_template__custom=True,
+            )
+            .order_by("-begin_timestamp")[:3]
+            .values_list("training_template_id")
+        )  # get the templates of the three most recent training sessions from this user
+        return (
+            apps.get_model("training.TrainingTemplate")
+            .objects.filter(
+                Q(custom=False) | Q(pk__in=recent_training_sessions_templates)
+            )
+            .filter(course_id=course_id)
+            .distinct()
+        )
+
+
+class TrainingTemplateManager(models.Manager):
+    def get_queryset(self):
+        return TrainingTemplatesQuerySet(self.model, using=self._db)
+
+    def recently_used_by(self, user, course_id):
+        return self.get_queryset().recently_used_by(user, course_id)
+
+
 class ProgrammingExerciseManager(models.Manager):
     def get_queryset(self):
         return ProgrammingExerciseQuerySet(self.model, using=self._db)

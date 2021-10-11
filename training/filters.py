@@ -14,6 +14,14 @@ class StudentOrAllowedCoursesOnly(filters.BaseFilterBackend):
         ).distinct()  # ! keep an eye on this
 
 
+class OwnedOnlyTrainingTemplates(filters.BaseFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+        if request.user.is_teacher:
+            return queryset.filter(custom=False)
+
+        return queryset.recently_used_by(request.user, view.kwargs["course_pk"])
+
+
 class TeacherOrPersonalTrainingSessionsOnly(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
         if request.user.is_teacher:
