@@ -557,6 +557,12 @@ class QuestionTrainingSessionThroughModel(models.Model):
 
     class Meta:
         ordering = ["training_session_id", "position"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["training_session", "position"],
+                name="same_session_unique_position",
+            )
+        ]
 
     def clean(self, *args, **kwargs):
         if (
