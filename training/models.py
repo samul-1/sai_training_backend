@@ -105,6 +105,10 @@ class Topic(models.Model):
     def __str__(self):
         return str(self.course) + " - " + self.name
 
+    @property
+    def items_count(self):
+        return self.questions.count() + self.programmingexercises.count()
+
 
 class TrainingTemplate(models.Model):
     name = models.TextField(blank=True)
