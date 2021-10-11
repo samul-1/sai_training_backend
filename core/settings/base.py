@@ -200,18 +200,3 @@ ADMINS = [("Samuele", "s.bonini7@studenti.unipi.it")]
 # Celery settings
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_BROKER_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
-
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-
-sentry_sdk.init(
-    dsn="https://0097c48067734bd9bb7dbaa3b82c0fbf@o1003719.ingest.sentry.io/5964320",  # use env var
-    integrations=[DjangoIntegration()],
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0,
-    # If you wish to associate users to errors (assuming you are using
-    # django.contrib.auth) you may enable sending PII data.
-    send_default_pii=True,
-)
