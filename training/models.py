@@ -132,6 +132,9 @@ class TrainingTemplate(models.Model):
     class Meta:
         ordering = ["pk"]
 
+    def __str__(self):
+        return f"{self.name} - {str(self.course)} - {self.creator.full_name}"
+
 
 class TrainingTemplateRule(models.Model):
     EASY_ONLY = "easy_only"
@@ -232,7 +235,6 @@ class AbstractItem(models.Model):
 
     class Meta:
         abstract = True
-        # ordering = ["pk"] can this be done here?
 
     def __str__(self):
         return self.text[:100]
@@ -291,6 +293,11 @@ class Question(TrackRenderableFieldsMixin, AbstractItem):
 
     class Meta:
         ordering = ["pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "text"], name="same_course_question_text_unique"
+            )
+        ]
 
 
 class Choice(TrackRenderableFieldsMixin):
@@ -341,9 +348,11 @@ class ProgrammingExercise(TrackRenderableFieldsMixin, AbstractItem):
     class Meta:
         ordering = ["pk"]
         verbose_name = "exercise"
-
-    def __str__(self):
-        return self.text[:100]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "text"], name="same_course_%(class)s_text_unique"
+            )
+        ]
 
 
 class ExerciseTestCase(models.Model):

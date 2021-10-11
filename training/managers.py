@@ -74,7 +74,7 @@ class TrainingTemplatesQuerySet(models.QuerySet):
                 course_id=course_id,
                 training_template__custom=True,
             )
-            .order_by("-begin_timestamp")[:3]
+            .order_by("-begin_timestamp")[:4]
             .values_list("training_template_id")
         )  # get the templates of the three most recent training sessions from this user
         return (
