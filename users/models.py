@@ -14,7 +14,7 @@ class User(AbstractUser):
 
     @property
     def full_name(self):
-        if len(self.first_name) == 0 and len(self.last_name == 0):
+        if len(self.first_name) == 0 and len(self.last_name) == 0:
             return self.email
 
         return " ".join(
