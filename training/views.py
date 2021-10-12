@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
@@ -197,9 +198,10 @@ class TopicViewSet(viewsets.ModelViewSet):
         queryset = queryset.filter(course=self.kwargs["course_pk"])
         if not self.request.user.is_teacher:
             # only return topics that contain at least one item
-            queryset = queryset.annotate(questions_count=Count("questions")).filter(
-                questions_count__gt=0
-            )
+            queryset = queryset.annotate(
+                questions_count=Count("questions"),
+                exercises_count=Count("programmingexercises"),
+            ).filter(Q(questions_count__gt=0) | Q(exercises_count__gt=0))
 
         return queryset
 
