@@ -8,7 +8,7 @@ class User(AbstractUser):
     def save(self, *args, **kwargs):
         creating = self.pk is None
         super(User, self).save(*args, **kwargs)
-        if creating and self.email.split("@")[1] == "unipi.it":
+        if len(self.email) > 0 and creating and self.email.split("@")[1] == "unipi.it":
             self.is_teacher = True
             self.save()
 

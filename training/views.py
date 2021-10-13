@@ -153,6 +153,22 @@ class CourseViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=["get"],
+        # permission_classes=[IsAuthenticated, StudentsOnly],
+    )
+    def stats(self, request, **kwargs):
+        course = self.get_object()
+
+        data = {
+            "number_enrolled": course.number_enrolled,
+            "training_sessions": course.training_sessions.count(),
+            "average_correct_percentage": course.average_correct_percentage,
+        }
+
+        return Response(data)
+
 
 class TrainingTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = TrainingTemplateSerializer

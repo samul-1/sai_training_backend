@@ -45,6 +45,27 @@ class Course(models.Model):
     def number_enrolled(self):
         return self.enrolled_students.count()
 
+    @property
+    def average_correct_percentage(self):
+        ended_training_session_count = self.training_sessions.filter(
+            in_progress=False
+        ).count()
+        if ended_training_session_count == 0:
+            return 0
+
+        return round(
+            (
+                sum(
+                    [
+                        t.correct_percentage
+                        for t in self.training_sessions.filter(in_progress=False)
+                    ]
+                )
+                / ended_training_session_count
+            ),
+            2,
+        )
+
 
 class Enrollment(models.Model):
     VIA_DIRECT_LINK = 0
@@ -476,6 +497,14 @@ class TrainingSession(models.Model):
             selected_choice__isnull=False,
             selected_choice__correct=True,
         ).count()
+
+    @property
+    def correct_percentage(self):
+        non_open_question_count = self.questions.filter(is_open_ended=False).count()
+        if non_open_question_count == 0:
+            return 1
+
+        return round(self.score / non_open_question_count, 2)
 
     @property
     def relevant_help_texts(self):
