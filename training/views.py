@@ -2,6 +2,8 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -158,6 +160,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         methods=["get"],
         # permission_classes=[IsAuthenticated, StudentsOnly],
     )
+    @method_decorator(cache_page(60 * 60 * 12))
     def stats(self, request, **kwargs):
         course = self.get_object()
 
