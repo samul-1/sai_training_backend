@@ -569,9 +569,7 @@ class QuestionTrainingSessionThroughModel(models.Model):
         Question,
         on_delete=models.CASCADE,
     )
-    position = (
-        models.PositiveIntegerField()
-    )  # todo make unique [session, position], [session, question]
+    position = models.PositiveIntegerField()
     training_session = models.ForeignKey(
         TrainingSession,
         on_delete=models.CASCADE,
@@ -590,7 +588,11 @@ class QuestionTrainingSessionThroughModel(models.Model):
             models.UniqueConstraint(
                 fields=["training_session", "position"],
                 name="same_session_unique_position",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["training_session", "question_id"],
+                name="same_session_unique_question",
+            ),
         ]
 
     def clean(self, *args, **kwargs):
