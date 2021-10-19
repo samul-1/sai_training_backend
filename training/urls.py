@@ -1,6 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
+from users.views import EnrolledStudentsViewSet
 
 from . import views
 
@@ -19,6 +20,8 @@ topic_router.register(
     basename="topic-exercises",
 )
 
+# achieves `/courses/{pk}/questions`, `/courses/{pk}/programming_exercises`,
+# `/courses/{pk}/templates`, `/courses/{pk}/sessions`, and `/courses/{pk}/students`
 course_router.register(
     r"templates",
     views.TrainingTemplateViewSet,
@@ -29,6 +32,11 @@ course_router.register(
     r"programming_exercises",
     views.ProgrammingExerciseViewSet,
     basename="course-questions",
+)
+course_router.register(
+    r"students",
+    EnrolledStudentsViewSet,
+    basename="course-students",
 )
 
 course_router.register(

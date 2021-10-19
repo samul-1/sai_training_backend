@@ -186,6 +186,9 @@ class PostSessionQuestionSerializer(ReadOnlyModelSerializer):
         )
 
 
+# TODO add a flag in TrainingSessionOutcomeSerializer to only render preview fields
+
+
 class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
     help_texts = serializers.DictField(source="relevant_help_texts")
 

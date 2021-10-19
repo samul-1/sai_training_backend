@@ -39,6 +39,7 @@ class AllowedTeacherOrEnrolledOnly(BasePermission):
         return request.user in course.enrolled_students.all()
 
 
+# TODO these two should be in users app
 class TeachersOnly(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_teacher
