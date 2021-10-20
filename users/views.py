@@ -19,9 +19,7 @@ class TeacherList(generics.ListAPIView):
 
     queryset = User.objects.filter(is_teacher=True)
     serializer_class = UserSerializer
-
-
-# permission_classes = [IsAuthenticated, TeachersOnly]
+    permission_classes = [IsAuthenticated, TeachersOnly]
 
 
 class EnrolledStudentsViewSet(viewsets.ModelViewSet):

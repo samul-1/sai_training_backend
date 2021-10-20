@@ -158,7 +158,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["get"],
-        # permission_classes=[IsAuthenticated, StudentsOnly],
+        permission_classes=[IsAuthenticated, TeachersOnly],
     )
     @method_decorator(cache_page(60 * 60 * 12))
     def stats(self, request, **kwargs):
@@ -242,8 +242,9 @@ class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all().prefetch_related("choices")
     permission_classes = [
         IsAuthenticated,
-        AllowedTeacherOrEnrolledOnly,
-        TeacherOrReadOnly,
+        # AllowedTeacherOrEnrolledOnly,
+        # TeacherOrReadOnly,
+        TeachersOnly,
     ]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["difficulty"]

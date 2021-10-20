@@ -29,8 +29,6 @@ logger = logging.getLogger(__name__)
 def render_tex_task(self, model, pk, fields):
     from training.tex import tex_to_svg
 
-    print("RECEIVED")
-
     re_rendered_fields = {}
     for target, source in fields.items():
         re_rendered_fields[target] = tex_to_svg(source)
@@ -54,8 +52,5 @@ def render_tex_task(self, model, pk, fields):
         ) == 1:  # object was correctly updated
             break
         # retry in a bit
-        print("SLEEPING")
         sleep(randint(1, 5))
         attempts += 1
-
-    print("OUT")
