@@ -29,7 +29,12 @@ def tex_to_svg(formula):
 
             # prepend a backslash: this prevents issues if the TeX formula starts with a - character
             # which node would otherwise interpret as an argument (the node script will remove this backslash)
-            stripped_token = "\\" + stripped_token
+            # also convert the html entities for &, <, etc. to their LaTeX equivalents
+            stripped_token = "\\" + stripped_token.replace("&amp;", "& ").replace(
+                "&gt;", "\\gt "
+            ).replace("&lt;", "\\lt ").replace("&lte;", "\\le ").replace(
+                "&gte;", "\\ge "
+            )
 
             res = subprocess.check_output(
                 [
