@@ -1,6 +1,6 @@
 /*
 usage: 
-node runWithAssertions.js programCode assertions
+node vm.js programCode assertions
 
 arguments:
 programCode is a STRING containing a js program
@@ -73,23 +73,27 @@ function prettyPrintAssertionError (e) {
   )
 }
 
+const escapeBackTicks = t => t.replace(/`/g, '\\`')
+
 const userCode = process.argv[2]
 
 const assertions = JSON.parse(process.argv[3])
 
-// turn array of strings representing assertion to a series of try-catch's where those assertions
-// are evaluated and the result is pushed to an array - this string will be inlined into the program
-// that the vm will run
+// turn array of strings representing assertions to a series of try-catch blocks
+//  where those assertions are evaluated and the result is pushed to an array
+// the resulting string will be inlined into the program that the vm will run
 const assertionString = assertions
   .map(
     (
-      a // put assertion into a try-catch
+      a // put assertion into a try-catch block
     ) =>
       `
-        ran = {id: ${a.id}, assertion: '${a.assertion}', is_public: ${a.is_public}}
+        ran = {id: ${a.id}, assertion: \`${escapeBackTicks(
+        a.assertion
+      )}\`, is_public: ${a.is_public}}
         try {
             ${a.assertion} // run the assertion
-            ran.passed = true
+            ran.passed = true // if no exception is thrown, the test case passed
         } catch(e) {
             ran.passed = false
             if(e instanceof AssertionError) {
@@ -102,7 +106,6 @@ const assertionString = assertions
     `
   )
   .reduce((a, b) => a + b, '') // reduce array of strings to a string
-
 // support for executing the user-submitted program
 // contains a utility function to stringify errors, the user code, and a series of try-catch's
 // where assertions are ran against the user code; the program evaluates to an array of outcomes
