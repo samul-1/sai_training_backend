@@ -175,10 +175,10 @@ REST_FRAMEWORK = {
 }
 
 # only allow access to uni emails
-# SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = [
-#     "studenti.unipi.it",
-#     "unipi.it",
-# ]
+SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = [
+    "studenti.unipi.it",
+    "unipi.it",
+]
 
 DJOSER = {"SERIALIZERS": {"current_user": "users.serializers.UserSerializer"}}
 
