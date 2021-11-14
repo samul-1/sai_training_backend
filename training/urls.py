@@ -9,7 +9,7 @@ router = routers.SimpleRouter()
 router.register(r"courses", views.CourseViewSet, basename="courses")
 
 # achieves `/courses/{pk}/topics/{pk}/questions` and
-# `/courses/{pk}/topics/{pk}/programming_exercise`
+# `/courses/{pk}/topics/{pk}/programming_exercises`
 course_router = routers.NestedSimpleRouter(router, r"courses", lookup="course")
 course_router.register(r"topics", views.TopicViewSet, basename="course-topics")
 topic_router = routers.NestedSimpleRouter(course_router, r"topics", lookup="topic")
