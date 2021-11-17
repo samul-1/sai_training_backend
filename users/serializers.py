@@ -12,3 +12,4 @@ class UserSerializer(serializers.ModelSerializer):
             "is_teacher",
             "full_name",
         )
+        read_only_fields = ("is_teacher",)
