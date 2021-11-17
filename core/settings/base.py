@@ -180,7 +180,24 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_WHITELISTED_DOMAINS = [
     "unipi.it",
 ]
 
-DJOSER = {"SERIALIZERS": {"current_user": "users.serializers.UserSerializer"}}
+DJOSER = {
+    "SERIALIZERS": {"current_user": "users.serializers.UserSerializer"},
+    "PERMISSIONS": {
+        "activation": ["users.permissions.Deny"],
+        "password_reset": ["users.permissions.Deny"],
+        "password_reset_confirm": ["users.permissions.Deny"],
+        "set_password": ["users.permissions.Deny"],
+        "username_reset": ["users.permissions.Deny"],
+        "username_reset_confirm": ["users.permissions.Deny"],
+        "set_username": ["users.permissions.Deny"],
+        "user_create": ["users.permissions.Deny"],
+        "user_delete": ["users.permissions.Deny"],
+        "user": ["users.permissions.ReadOnly"],
+        "user_list": ["users.permissions.Deny"],
+        "token_create": ["users.permissions.Deny"],
+        "token_destroy": ["users.permissions.Deny"],
+    },
+}
 
 
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY", None)
