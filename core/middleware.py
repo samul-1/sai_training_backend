@@ -25,6 +25,10 @@ class Http4xxErrorLogMiddleware(MiddlewareMixin):
             if not self.is_ignorable_request(request, path, domain, referer):
                 ua = request.META.get("HTTP_USER_AGENT", "<none>")
                 ip = request.META.get("REMOTE_ADDR", "<none>")
+                try:
+                    response_data = str(response.data)
+                except AttributeError:
+                    response_data = "-"
                 mail_managers(
                     "Error %s on %slink on %s"
                     % (
@@ -40,16 +44,15 @@ class Http4xxErrorLogMiddleware(MiddlewareMixin):
                     "IP address: %s\n"
                     "Requesting user: %s\n"
                     "Response data: %s\n"
-                    "Request headers: %s\nRequest body: %s\n"
+                    "Request headers: %s\n"
                     % (
                         referer,
                         path,
                         ua,
                         ip,
                         request.user,
-                        str(response.data),
+                        response_data,
                         str(request.headers),
-                        str(request.body),
                     ),
                     fail_silently=True,
                 )
