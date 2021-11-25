@@ -14,9 +14,10 @@ class Http4xxErrorLogMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
         """Send broken link emails for relevant 404 NOT FOUND responses."""
         if (
-            str(response.status_code)[0] == "4" and response.status_code != 401
-        ):  # and not settings.DEBUG:
-            print("GONNA PRINT")
+            str(response.status_code)[0] == "4"
+            and response.status_code != 401
+            and not settings.DEBUG
+        ):
             domain = request.get_host()
             path = request.get_full_path()
             referer = request.META.get("HTTP_REFERER", "")
@@ -39,7 +40,17 @@ class Http4xxErrorLogMiddleware(MiddlewareMixin):
                     "IP address: %s\n"
                     "Requesting user: %s\n"
                     "Response data: %s\n"
-                    % (referer, path, ua, ip, request.user, str(response.data)),
+                    "Request headers: %s\nRequest body: %s\n"
+                    % (
+                        referer,
+                        path,
+                        ua,
+                        ip,
+                        request.user,
+                        str(response.data),
+                        str(request.headers),
+                        str(request.body),
+                    ),
                     fail_silently=True,
                 )
         return response

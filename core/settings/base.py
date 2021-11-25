@@ -214,6 +214,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
 
 
 ADMINS = [("Samuele", "s.bonini7@studenti.unipi.it")]
+MANAGERS = [("Samuele", "s.bonini7@studenti.unipi.it")]
 
 # Celery settings
 CELERY_RESULT_BACKEND = "django-db"
