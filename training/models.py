@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -10,6 +11,8 @@ from training.managers import ProgrammingExerciseManager, TrainingTemplateManage
 from training.node.utils import run_code_in_vm
 
 from .managers import TrainingSessionManager, TrainingTemplateRuleManager
+
+logger = logging.getLogger(__name__)
 
 
 class Course(models.Model):
@@ -531,6 +534,7 @@ class TrainingSession(models.Model):
 
     def turn_in(self, answers):
         if not self.in_progress:
+            logger.warning(f"Session is over {self.pk}")
             raise ValidationError("Session is over.")
 
         # loops through the assigned questions to the session and saves the selected choice for each
@@ -543,6 +547,7 @@ class TrainingSession(models.Model):
                     training_session=self, question_id=question_id
                 )
             except QuestionTrainingSessionThroughModel.DoesNotExist:
+                logger.warning(f"Question {question_id} not in session {self.pk}")
                 raise ValidationError(
                     f"Question {question_id} not in session {self.pk}"
                 )
@@ -556,6 +561,7 @@ class TrainingSession(models.Model):
                         through_row.selected_choice = Choice.objects.get(pk=answer)
                         through_row.save()
                     except Choice.DoesNotExist:
+                        logger.warning(f"Choice {answer} doesn't exist ({pk})")
                         raise ValidationError(f"Choice {answer} doesn't exist")
 
         now = timezone.localtime(timezone.now())
