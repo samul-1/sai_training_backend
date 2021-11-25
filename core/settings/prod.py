@@ -38,23 +38,23 @@ LOGGING = {
             "class": "django.utils.log.AdminEmailHandler",
             "include_html": True,
         },
-        "file": {
-            "level": "WARNING",
-            "class": "logging.FileHandler",
-            "filename": os.environ.get("LOG_FILE", "warning.log"),
-        },
+        # "file": {
+        #     "level": "WARNING",
+        #     "class": "logging.FileHandler",
+        #     "filename": os.environ.get("LOG_FILE", "warning.log"),
+        # },
     },
     "root": {
         "handlers": ["console", "mail_admins"],
         "level": os.environ.get("LOGGING_MAIL_SEVERITY", "ERROR"),
     },
-    "loggers": {
-        "core.middleware": {
-            "handlers": ["file"],
-            "level": "WARNING",
-            "propagate": True,
-        },
-    },
+    # "loggers": {
+    #     "core.middleware": {
+    #         "handlers": ["file"],
+    #         "level": "WARNING",
+    #         "propagate": True,
+    #     },
+    # },
 }
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
