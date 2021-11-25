@@ -1,3 +1,4 @@
+import logging
 import re
 from urllib.parse import urlparse
 
@@ -8,6 +9,8 @@ from django.http import HttpResponsePermanentRedirect
 from django.urls import is_valid_path
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.http import escape_leading_slashes
+
+logger = logging.getLogger(__name__)
 
 
 class Http4xxErrorLogMiddleware(MiddlewareMixin):
@@ -22,14 +25,17 @@ class Http4xxErrorLogMiddleware(MiddlewareMixin):
             path = request.get_full_path()
             referer = request.META.get("HTTP_REFERER", "")
 
-            if not self.is_ignorable_request(request, path, domain, referer):
+            if not self.is_ignorable_request(
+                request, path, domain, referer
+            ) and not path.endswith("favicon.ico"):
                 ua = request.META.get("HTTP_USER_AGENT", "<none>")
                 ip = request.META.get("REMOTE_ADDR", "<none>")
                 try:
                     response_data = str(response.data)
                 except AttributeError:
                     response_data = "-"
-                mail_managers(
+
+                log_message = (
                     "Error %s on %slink on %s"
                     % (
                         response.status_code,
@@ -54,8 +60,8 @@ class Http4xxErrorLogMiddleware(MiddlewareMixin):
                         response_data,
                         str(request.headers),
                     ),
-                    fail_silently=True,
                 )
+                logger.warning(log_message)
         return response
 
     def is_internal_request(self, domain, referer):
