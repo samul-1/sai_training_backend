@@ -1,4 +1,5 @@
 from .base import *
+import os
 
 REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
@@ -10,4 +11,15 @@ REST_FRAMEWORK = {
         "rest_framework_social_oauth2.authentication.SocialAuthentication",
     ),
     "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",
+}
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'training-db-sql', 
+        'USER': 'postgres', 
+        'PASSWORD': os.environ.get('LOCAL_DB_PWD'),
+        'HOST': '127.0.0.1', 
+        'PORT': '5432',
+    }
 }

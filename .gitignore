@@ -1,5 +1,0 @@
-.env
-*.sqlite3
-node_modules
-core/media
-htmlcov

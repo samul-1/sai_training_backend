@@ -6,6 +6,7 @@ from training.models import (
 )
 
 from .models import (
+    AbstractItem,
     Choice,
     Course,
     ExerciseSubmission,
@@ -209,7 +210,6 @@ class TrainingSessionOutcomeSerializer(ReadOnlyModelSerializer):
             many=True, source="questiontrainingsessionthroughmodel_set", **kwargs
         )
 
-
 class QuestionSerializer(
     TeachersOnlyFieldsModelSerializer, NestedCreateUpdateSerializer
 ):
@@ -366,3 +366,43 @@ class TrainingTemplateSerializer(serializers.ModelSerializer):
             instance.rules.add()
 
         return instance
+
+
+class ExportChoiceSerializer(serializers.ModelSerializer):
+    score = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Choice
+        fields = ['text', 'score']
+        
+    def get_score(self, obj):
+        return "1.00" if obj.correct else "0.00"
+
+class ExportQuestionSerializer(serializers.ModelSerializer):
+    public_tags = serializers.SerializerMethodField()
+    private_tags = serializers.SerializerMethodField()
+    exercise_type = serializers.SerializerMethodField()
+    choices = ExportChoiceSerializer(many=True)
+    class Meta:
+        model = Question
+        fields = ["text", "private_tags", "public_tags", "solution", "exercise_type", "choices",]
+        
+    def get_public_tags(self, obj):
+        return [obj.topic.name]
+    def get_private_tags(self, obj):
+        if obj.difficulty == AbstractItem.VERY_EASY:
+            return ['molto facile']        
+        if obj.difficulty == AbstractItem.EASY:
+            return ['facile']       
+        if obj.difficulty == AbstractItem.MEDIUM:
+            return ['media difficoltà']       
+        if obj.difficulty == AbstractItem.HARD:
+            return ['difficile']        
+        if obj.difficulty == AbstractItem.VERY_HARD:
+            return ['molto difficile']
+    
+    def get_exercise_type(self, obj):
+        if obj.is_open_ended:
+            return 2
+        
+        return 0

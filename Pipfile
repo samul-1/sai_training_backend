@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-django = "*"
+django = "~=3.2"
 djangorestframework = "*"
 django-filter = "*"
 markdown = "*"
@@ -21,6 +21,7 @@ whitenoise = "*"
 psycopg2-binary = "*"
 psycopg2 = "*"
 sentry-sdk = "*"
+black = "*"
 
 [dev-packages]
 

@@ -36,6 +36,7 @@ from training.serializers import (
 from .models import Course, Question, Topic, TrainingSession
 from .serializers import (
     CourseSerializer,
+    ExportQuestionSerializer,
     QuestionSerializer,
     TopicSerializer,
     TrainingSessionOutcomeSerializer,
@@ -249,6 +250,12 @@ class QuestionViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["difficulty"]
     pagination_class = CourseItemPagination
+    
+    def get_serializer_class(self):
+        if "export" in self.request.query_params:
+            return ExportQuestionSerializer
+        
+        return super().get_serializer_class()
 
     def get_queryset(self):
         queryset = super().get_queryset()
